@@ -1,0 +1,88 @@
+:root {
+  --windows-blue: #000082;
+  --windows-teal: rgb(22, 128, 128);
+  --windows-grey: #c2c2c2;
+  --windows-grey-border: #607d8b;
+  --windows-manilla: rgb(255, 250, 165);
+  --windows-manilla-border: rgb(162, 154, 37);
+}
+
+body {
+  font-family: "Trebuchet MS", Arial, sans-serif, sans-serif;
+  padding: 12px;
+  background-color: var(--windows-teal);
+  color: white;
+  margin: 0px;
+}
+
+
+/** APP ERRORS **/
+
+.app-errors {
+  position: absolute;
+  display: flex;
+  flex-flow: column;
+}
+
+.app-errors__error {
+  max-width: 250px;
+}
+
+
+/** WINDOWS **/
+
+.window {
+  background-color: var(--windows-grey);
+  border: outset 2px var(--windows-grey-border);
+  padding: 2px;
+}
+
+.window__header {
+  background-color: var(--windows-blue);
+  height: 24px;
+  margin-bottom: 8px;
+  line-height: 24px;
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+}
+
+.window__header__button {
+  outline: 0px;
+  background-color: var(--windows-grey);
+  box-sizing: border-box;
+  border: 2px outset var(--windows-grey-border);
+  height: 20px;
+  margin: 2px;
+  cursor: pointer;
+}
+
+.window__header__button:active {
+  outline: 0px;
+}
+
+.window__header__title {
+  color: white;
+  padding-left: 4px;
+}
+
+.window__body {
+  padding: 4px;
+}
+
+/** BUTTONS **/
+.button {
+  font-size: 12px;
+  font-weight: bolder;
+  outline: 0px;
+  background-color: var(--windows-grey);
+  box-sizing: border-box;
+  border: 2px outset var(--windows-grey-border);
+  cursor: pointer;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  color: var(--windows-blue);
+  padding: 8px 32px;
+}
