@@ -11,20 +11,25 @@ import Html.Events as E
 import Http
 import Json.Decode as D
 import Json.Encode as E
+import Page.Dashboard as DashboardPage
 import Page.Login as LoginPage
 import Url exposing (Url)
-import Url.Parser exposing ((</>), map, oneOf, parse, string, top)
 import Url.Builder exposing (crossOrigin)
+import Url.Parser exposing ((</>), map, oneOf, parse, string, top, s)
+
 
 port storeToken : String -> Cmd msg
+
 
 type Page
     = NotFound
     | LoginPage LoginPage.Model
+    | DashboardPage DashboardPage.Model
 
 
 type Route
     = LoginRoute
+    | DashboardRoute
 
 
 urlToRoute : Url -> Maybe Route
@@ -33,6 +38,7 @@ urlToRoute url =
         urlParser =
             oneOf
                 [ map LoginRoute top
+                , map DashboardRoute (s "dashboard")
                 ]
     in
     parse urlParser url
@@ -46,6 +52,12 @@ modelWithRoute model route =
                 |> mapModel (\login -> { model | page = LoginPage login })
                 |> mapMsg (LoginMsg >> PageMsg)
                 |> applyExternalMsg (handleExternalMsg model.flags)
+                |> resolve
+
+        Just DashboardRoute ->
+            DashboardPage.init model.flags
+                |> mapModel (\dashboard -> { model | page = DashboardPage dashboard })
+                |> mapMsg (DashboardMsg >> PageMsg)
                 |> resolve
 
         Nothing ->
@@ -66,7 +78,7 @@ logErrorMessage flags logMessage =
         , method = "POST"
         , timeout = Nothing
         , tracker = Nothing
-        , url = crossOrigin flags.apiUrl ["log"] []
+        , url = crossOrigin flags.apiUrl [ "log" ] []
         }
 
 
@@ -96,11 +108,11 @@ handleExternalMsg flags extMsg result =
                     (\model ->
                         { model | token = Just token }
                     )
-                |> withCmds [
-                    case token of
+                |> withCmds
+                    [ case token of
                         Token val ->
                             storeToken val
-                ]
+                    ]
 
 
 type alias Model =
@@ -116,6 +128,7 @@ type alias Model =
 
 type PageMsg
     = LoginMsg LoginPage.Msg
+    | DashboardMsg DashboardPage.Msg
 
 
 type Msg
@@ -131,31 +144,36 @@ init flagsValue url key =
     let
         decodedFlags =
             D.decodeValue
-                (D.map2 Flags
+                (D.map3 Flags
                     (D.field "apiUrl" D.string)
+                    (D.field "pageUrl" D.string)
                     (D.field "token" (D.nullable D.string))
                 )
                 flagsValue
-
     in
     modelWithRoute
         { appErrors = []
         , key = key
         , url = url
         , page = NotFound
-        , token = Result.toMaybe decodedFlags
-            |> Maybe.andThen (.token)
-            |> Maybe.map (Token >> Just)
-            |> Maybe.withDefault Nothing
-        , flags = decodedFlags
-            |> Result.withDefault { apiUrl = "", token = Nothing }
+        , token =
+            Result.toMaybe decodedFlags
+                |> Maybe.andThen .token
+                |> Maybe.map (Token >> Just)
+                |> Maybe.withDefault Nothing
+        , flags =
+            decodedFlags
+                |> Result.withDefault
+                    { apiUrl = ""
+                    , pageUrl = ""
+                    , token = Nothing
+                    }
         , appFailure =
             decodedFlags
                 |> Result.map (\_ -> False)
                 |> Result.withDefault True
         }
         (urlToRoute url)
-
 
 
 handleExtraneousPageMsg : Model -> ( Model, Cmd Msg )
@@ -205,6 +223,17 @@ update msg model =
                     handleExtraneousPageMsg model
 
 
+        PageMsg (DashboardMsg dashboardMsg) ->
+            case model.page of
+                DashboardPage dashboardPage ->
+                    DashboardPage.update model.flags dashboardMsg dashboardPage
+                        |> mapMsg (DashboardMsg >> PageMsg)
+                        |> mapModel (\page -> { model | page = DashboardPage page })
+                        |> resolve
+                _ ->
+                    handleExtraneousPageMsg model
+
+
 view : Model -> Document Msg
 view model =
     Document "Kewl elm app" <|
@@ -220,6 +249,10 @@ view model =
                     LoginPage loginPage ->
                         LoginPage.view model.flags loginPage
                             |> H.map (LoginMsg >> PageMsg)
+
+                    DashboardPage dashboardPage ->
+                        DashboardPage.view model.flags dashboardPage
+                            |> H.map (DashboardMsg >> PageMsg)
 
                     NotFound ->
                         H.h3 [] [ H.text "Not found" ]

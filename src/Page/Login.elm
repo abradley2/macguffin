@@ -21,7 +21,7 @@ ghUrl flags =
         "https://github.com"
         [ "login", "oauth", "authorize" ]
         [ string "client_id" "c03a348dc743e9a1edc6"
-        , string "redirect_uri" "http://localhost:1234"
+        , string "redirect_uri" flags.pageUrl
         ]
 
 

@@ -1,6 +1,6 @@
 import { Elm } from './Main.elm'
 
-const pageUrl = `${window.location.protocol}:${window.location.hostname}`
+const pageUrl = `${window.location.protocol}//${window.location.host}`
 
 let token = null
 try {
