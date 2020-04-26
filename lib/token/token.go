@@ -38,7 +38,7 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		logger.Printf("Failed to read request body %e", err)
+		logger.Printf("Failed to read request body %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
 		return
@@ -58,8 +58,8 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf(
 			"%s?client_id=%s&client_secret=%s&code=%s",
 			ghURL,
-			env.GH_CLIENT_ID,
-			env.GH_CLIENT_SECRET,
+			env.GHClientID,
+			env.GHClientSecret,
 			*body.Code,
 		),
 		nil,
@@ -68,7 +68,7 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	ghReq.Header.Set("Accept", "application/json")
 
 	if err != nil {
-		logger.Printf("Error creating token request: %e", err)
+		logger.Printf("Error creating token request: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
 		return
@@ -77,7 +77,7 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	ghRes, err := client.Do(ghReq)
 
 	if err != nil {
-		logger.Printf("Error sending token request: %e", err)
+		logger.Printf("Error sending token request: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
 		return
@@ -88,7 +88,7 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		logger.Printf("Error reading github response: %e", err)
+		logger.Printf("Error reading github response: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
 		return

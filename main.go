@@ -69,7 +69,7 @@ func clientLog(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		logger.Printf("Failed to read client error log: %e", err)
+		logger.Printf("Failed to read client error log: %v", err)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
