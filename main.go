@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/abradley2/macguffin/lib/request"
 	"github.com/abradley2/macguffin/lib/token"
@@ -56,7 +55,6 @@ type clientLogBody struct {
 
 func clientLog(w http.ResponseWriter, r *http.Request) {
 	logger := r.Context().Value(request.LoggerKey).(*log.Logger)
-	logger.SetOutput(os.Stderr)
 
 	if r.Method != http.MethodPost {
 		logger.Printf("Method not allowed")

@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
+	"github.com/abradley2/macguffin/lib/env"
 	"github.com/abradley2/macguffin/lib/request"
 )
 
@@ -38,7 +38,6 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		logger.SetOutput(os.Stderr)
 		logger.Printf("Failed to read request body %e", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
@@ -57,9 +56,10 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	ghReq, err := http.NewRequest(
 		http.MethodPost,
 		fmt.Sprintf(
-			"%s?client_id=c03a348dc743e9a1edc6&client_secret=%s&code=%s",
+			"%s?client_id=%s&client_secret=%s&code=%s",
 			ghURL,
-			os.Getenv("GH_CLIENT_SECRET"),
+			env.GH_CLIENT_ID,
+			env.GH_CLIENT_SECRET,
 			*body.Code,
 		),
 		nil,
@@ -68,7 +68,6 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	ghReq.Header.Set("Accept", "application/json")
 
 	if err != nil {
-		logger.SetOutput(os.Stderr)
 		logger.Printf("Error creating token request: %e", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
@@ -78,7 +77,6 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	ghRes, err := client.Do(ghReq)
 
 	if err != nil {
-		logger.SetOutput(os.Stderr)
 		logger.Printf("Error sending token request: %e", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
@@ -90,7 +88,6 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		logger.SetOutput(os.Stderr)
 		logger.Printf("Error reading github response: %e", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
@@ -98,7 +95,6 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ghRes.StatusCode >= 300 {
-		logger.SetOutput(os.Stderr)
 		logger.Printf(
 			"Unexpected status code %d: \nresponse: %s",
 			ghRes.StatusCode,

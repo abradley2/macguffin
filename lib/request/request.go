@@ -19,5 +19,5 @@ func NewRID() string {
 
 // NewLogger create a logger for a client request
 func NewLogger() *log.Logger {
-	return log.New(os.Stdout, NewRID(), log.LstdFlags)
+	return log.New(os.Stderr, NewRID(), log.LstdFlags)
 }
