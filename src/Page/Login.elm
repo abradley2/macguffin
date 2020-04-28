@@ -93,7 +93,12 @@ update msg model =
 
         FetchedToken (Result.Ok tokenResponse) ->
             withModel model
-                |> withExternalMsg (SetToken tokenResponse)
+                |> withExternalMsg
+                    (Batch
+                        [ SetToken tokenResponse
+                        , ReplaceUrl "/agent-dashboard"
+                        ]
+                    )
 
 
 view : Flags -> Model -> H.Html Msg

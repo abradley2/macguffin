@@ -13,3 +13,6 @@ type alias Log =
 type ExtMsg
     = LogError Log
     | SetToken Token
+    | ReplaceUrl String
+    | PushUrl String
+    | Batch (List ExtMsg)

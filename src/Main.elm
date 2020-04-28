@@ -1,7 +1,7 @@
 port module Main exposing (..)
 
 import Browser exposing (Document, UrlRequest(..), application)
-import Browser.Navigation exposing (Key, load, pushUrl)
+import Browser.Navigation exposing (Key, load, pushUrl, replaceUrl)
 import ComponentResult exposing (ComponentResult, applyExternalMsg, mapModel, mapMsg, resolve, withCmds, withExternalMsg, withModel)
 import ExtMsg exposing (ExtMsg(..), Log, Token(..))
 import Flags exposing (Flags)
@@ -15,7 +15,7 @@ import Page.Dashboard as DashboardPage
 import Page.Login as LoginPage
 import Url exposing (Url)
 import Url.Builder exposing (crossOrigin)
-import Url.Parser exposing ((</>), map, oneOf, parse, string, top, s)
+import Url.Parser exposing ((</>), map, oneOf, parse, s, string, top)
 
 
 port storeToken : String -> Cmd msg
@@ -38,7 +38,7 @@ urlToRoute url =
         urlParser =
             oneOf
                 [ map LoginRoute top
-                , map DashboardRoute (s "dashboard")
+                , map DashboardRoute (s "agent-dashboard")
                 ]
     in
     parse urlParser url
@@ -51,7 +51,7 @@ modelWithRoute model route =
             LoginPage.init model.flags model.url
                 |> mapModel (\login -> { model | page = LoginPage login })
                 |> mapMsg (LoginMsg >> PageMsg)
-                |> applyExternalMsg (handleExternalMsg model.flags)
+                |> applyExternalMsg (handleExternalMsg model.key model.flags)
                 |> resolve
 
         Just DashboardRoute ->
@@ -82,8 +82,8 @@ logErrorMessage flags logMessage =
         }
 
 
-handleExternalMsg : Flags -> ExtMsg -> ComponentResult Model Msg a b -> ComponentResult Model Msg a b
-handleExternalMsg flags extMsg result =
+handleExternalMsg : Key -> Flags -> ExtMsg -> ComponentResult Model Msg a b -> ComponentResult Model Msg a b
+handleExternalMsg key flags extMsg result =
     case extMsg of
         LogError err ->
             result
@@ -113,6 +113,24 @@ handleExternalMsg flags extMsg result =
                         Token val ->
                             storeToken val
                     ]
+
+        ReplaceUrl nextUrl ->
+            result
+                |> withCmds
+                    [ replaceUrl key nextUrl
+                    ]
+
+        PushUrl nextUrl ->
+            result
+                |> withCmds
+                    [ pushUrl key nextUrl
+                    ]
+
+        Batch extMsgList ->
+            List.foldl
+                (handleExternalMsg key flags)
+                result
+                extMsgList
 
 
 type alias Model =
@@ -185,7 +203,7 @@ handleExtraneousPageMsg model =
                 , logMessage = Just <| "Unhandled page msg on " ++ Url.toString model.url
                 }
             )
-        |> applyExternalMsg (handleExternalMsg model.flags)
+        |> applyExternalMsg (handleExternalMsg model.key model.flags)
         |> resolve
 
 
@@ -215,13 +233,12 @@ update msg model =
                     LoginPage.update loginMsg loginPage
                         |> mapMsg (LoginMsg >> PageMsg)
                         |> mapModel (\page -> { model | page = LoginPage page })
-                        |> applyExternalMsg (handleExternalMsg model.flags)
+                        |> applyExternalMsg (handleExternalMsg model.key model.flags)
                         |> resolve
 
                 -- we are no longer on the Login page
                 _ ->
                     handleExtraneousPageMsg model
-
 
         PageMsg (DashboardMsg dashboardMsg) ->
             case model.page of
@@ -230,6 +247,7 @@ update msg model =
                         |> mapMsg (DashboardMsg >> PageMsg)
                         |> mapModel (\page -> { model | page = DashboardPage page })
                         |> resolve
+
                 _ ->
                     handleExtraneousPageMsg model
 
