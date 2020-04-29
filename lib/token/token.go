@@ -1,6 +1,7 @@
 package token
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,6 +9,10 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"crypto/sha256"
+
+	"github.com/lucsky/cuid"
 
 	"github.com/abradley2/macguffin/lib/env"
 	"github.com/abradley2/macguffin/lib/request"
@@ -21,6 +26,10 @@ var client = http.Client{
 
 type reqBody struct {
 	Code *string `json:"code"`
+}
+
+type ghResBody struct {
+	AccessToken *string `json:"access_token"`
 }
 
 // HandleFunc returns on oauth token from github
@@ -105,7 +114,99 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(ghRes.StatusCode)
-	w.Write(ghResContent)
+	grb := ghResBody{}
+	err = json.Unmarshal(ghResContent, &grb)
+
+	if err != nil {
+		logger.Printf(
+			"Failed to read body from github response: %v",
+			err,
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal server error"))
+		return
+	}
+
+	if grb.AccessToken == nil {
+		logger.Printf(
+			"Failed to retrieve access token from github response",
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal server error"))
+		return
+	}
+
+	user, err := retrieveUser(logger, *grb.AccessToken)
+
+	if err != nil {
+		logger.Printf("Error retrieving gh user: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal server error"))
+		return
+	}
+
+	clientToken := fmt.Sprintf("%s*%s", cuid.New(), user)
+
+	h := sha256.New()
+	h.Write([]byte(clientToken))
+
+	enc := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`{"access_token": "%s"}`, enc)))
+
 	return
+}
+
+type ghUserInfo struct {
+	ID *int `json:"id"`
+}
+
+func retrieveUser(logger *log.Logger, authToken string) (string, error) {
+	var user string
+	var err error
+
+	req, err := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
+
+	req.Header.Add("Authorization", fmt.Sprintf("token %s", authToken))
+
+	if err != nil {
+		return user, err
+	}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		logger.Printf("Error performing gh request to retrieve user: %v", err)
+		return user, err
+	}
+
+	resContent, err := ioutil.ReadAll(
+		io.LimitReader(res.Body, 50000),
+	)
+
+	if err != nil {
+		logger.Printf("Error reading gh response body to retrieve user: %v", err)
+		return user, err
+	}
+
+	if res.StatusCode >= 300 {
+		return user, fmt.Errorf("Unexpected status code retrieving github user: %d", res.StatusCode)
+	}
+
+	ui := ghUserInfo{}
+	err = json.Unmarshal(resContent, &ui)
+
+	if err != nil {
+		logger.Printf("Error decoding github user info: %v", err)
+		return user, err
+	}
+
+	if ui.ID == nil {
+		err = fmt.Errorf("Failed to retrieve user id from github user info")
+		logger.Printf(err.Error())
+		return user, err
+	}
+
+	return string(*ui.ID), err
 }
