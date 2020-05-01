@@ -3,6 +3,8 @@ module Page.Dashboard exposing (Model, Msg(..), init, update, view)
 import ComponentResult exposing (ComponentResult, withCmds, withModel)
 import Flags exposing (Flags)
 import Html as H
+import Html.Attributes as A
+import Html.Events as E
 import Http
 import Json.Decode as D
 import RemoteData exposing (RemoteData(..), WebData)
@@ -80,4 +82,32 @@ update flags msg model =
 
 view : Flags -> Model -> H.Html Msg
 view flags model =
-    H.div [] [ H.text "Dashboard" ]
+    H.div [ A.class "dashboard-page" ]
+        [ mainWindowView flags model
+        ]
+
+
+mainWindowView : Flags -> Model -> H.Html Msg
+mainWindowView flags model =
+    H.div
+        [ A.class "window dashboard-window" ]
+        [ H.div
+            [ A.class "window__header"
+            ]
+            []
+        , H.div
+            [ A.class "window__body"
+            ]
+            [ H.div
+                [ A.class "body__textarea dashboard-textarea" ]
+                [ H.p
+                    [ A.class "dashboard-textarea__text" ]
+                    [ H.text """
+                        Agent, please review the following
+                        instances of macguffins found in your
+                        operating zone.
+                            """
+                    ]
+                ]
+            ]
+        ]

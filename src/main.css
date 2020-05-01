@@ -8,7 +8,7 @@
 }
 
 body {
-  font-family: "Trebuchet MS", Arial, sans-serif, sans-serif;
+  font-family: "Courier", Arial, sans-serif, sans-serif;
   padding: 12px;
   background-color: var(--windows-teal);
   color: white;
@@ -68,6 +68,11 @@ body {
 
 .window__body {
   padding: 4px;
+}
+
+.body__textarea {
+  background-color: white;
+  border: 2px inset var(--windows-grey-border);
 }
 
 /** BUTTONS **/

@@ -1,18 +1,14 @@
 package token
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
-
-	"crypto/sha256"
-
-	"github.com/lucsky/cuid"
 
 	"github.com/abradley2/macguffin/lib/env"
 	"github.com/abradley2/macguffin/lib/request"
@@ -28,7 +24,7 @@ type reqBody struct {
 	Code *string `json:"code"`
 }
 
-type ghResBody struct {
+type githubUserResponse struct {
 	AccessToken *string `json:"access_token"`
 }
 
@@ -114,8 +110,8 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	grb := ghResBody{}
-	err = json.Unmarshal(ghResContent, &grb)
+	ghUserRes := githubUserResponse{}
+	err = json.Unmarshal(ghResContent, &ghUserRes)
 
 	if err != nil {
 		logger.Printf(
@@ -127,16 +123,17 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if grb.AccessToken == nil {
+	if ghUserRes.AccessToken == nil {
 		logger.Printf(
-			"Failed to retrieve access token from github response",
+			"Failed to retrieve access token from github response: %s",
+			ghResContent,
 		)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
 		return
 	}
 
-	user, err := retrieveUser(logger, *grb.AccessToken)
+	user, err := retrieveUser(logger, *ghUserRes.AccessToken)
 
 	if err != nil {
 		logger.Printf("Error retrieving gh user: %v", err)
@@ -145,17 +142,16 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientToken := fmt.Sprintf("%s*%s", cuid.New(), user)
+	accessToken, err := storeToken(r.Context(), ghUserRes, user, logger)
 
-	h := sha256.New()
-	h.Write([]byte(clientToken))
-
-	enc := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal server error"))
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"access_token": "%s"}`, enc)))
-
-	return
+	w.Write([]byte(fmt.Sprintf(`{"access_token": "%s"}`, accessToken)))
 }
 
 type ghUserInfo struct {
@@ -191,7 +187,7 @@ func retrieveUser(logger *log.Logger, authToken string) (string, error) {
 	}
 
 	if res.StatusCode >= 300 {
-		return user, fmt.Errorf("Unexpected status code retrieving github user: %d", res.StatusCode)
+		return user, fmt.Errorf("Unexpected status code retrieving github user: %d \n %s", res.StatusCode, resContent)
 	}
 
 	ui := ghUserInfo{}
@@ -208,5 +204,5 @@ func retrieveUser(logger *log.Logger, authToken string) (string, error) {
 		return user, err
 	}
 
-	return string(*ui.ID), err
+	return strconv.Itoa(*ui.ID), err
 }

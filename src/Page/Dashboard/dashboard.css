@@ -1,0 +1,19 @@
+.dashboard-page {
+  padding-top: 24px;
+}
+
+.dashboard-textarea {
+  min-height: 400px;
+}
+
+.dashboard-textarea__text {
+  padding: 0px 8px;
+  line-height: 36px;
+  font-size: 18px;
+  color: var(--windows-blue);
+}
+
+.dashboard-window {
+  max-width: 600px;
+  margin: auto;
+}

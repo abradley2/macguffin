@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/abradley2/macguffin/lib/articles"
 	"github.com/abradley2/macguffin/lib/request"
 	"github.com/abradley2/macguffin/lib/token"
 	"github.com/rs/cors"
@@ -30,6 +31,7 @@ func main() {
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/log", clientLog)
 	mux.HandleFunc("/token", token.HandleFunc)
+	mux.HandleFunc("/articles", articles.HandleGetArticleList)
 
 	http.ListenAndServe(":8080", cors.Default().Handler(s))
 }
