@@ -9,6 +9,7 @@ import Http
 import Json.Decode as D
 import RemoteData exposing (RemoteData(..), WebData)
 import Url.Builder exposing (crossOrigin, string)
+import View.Folder as Folder
 
 
 type alias MacguffinItem =
@@ -83,7 +84,17 @@ update flags msg model =
 view : Flags -> Model -> H.Html Msg
 view flags model =
     H.div [ A.class "dashboard-page" ]
-        [ mainWindowView flags model
+        [ H.div [] [
+            H.input [ A.class "textinput", A.placeholder "Search Query" ] []
+            , H.button [ A.class "button" ] [ H.text "GO" ]
+        ]
+        , mainWindowView flags model
+        , H.div
+            [ A.class "dashboard-folderrow" ]
+            [ Folder.view [] "Agent Profile"
+            , Folder.view [] "Containment Sites"
+            , Folder.view [] "Protocols"
+            ]
         ]
 
 
@@ -107,6 +118,16 @@ mainWindowView flags model =
                         instances of macguffins found in your
                         operating zone.
                             """
+                    ]
+                , H.div
+                    []
+                    [
+                        H.div
+                            [ A.class "dashboard-list" ]
+                            [ H.button [ A.class "button dashboard-listbutton" ] [ H.text "MAC-070 Crystal Skull" ]
+                            , H.button [ A.class "button dashboard-listbutton" ] [ H.text "MAC-854 Sith Dagger" ]
+                            , H.button [ A.class "button dashboard-listbutton" ] [ H.text "MAC-091 Soul Stone" ]
+                            ]
                     ]
                 ]
             ]

@@ -1,0 +1,29 @@
+/** Folder.elm **/
+
+.folder {
+  margin: 20px;
+  display: flex;
+  flex-direction: column;
+  width: 60px;
+  position: relative;
+}
+
+.folder__top {
+  position: absolute;
+  height: 0px;
+  border-bottom: 20px solid var(--windows-manilla-border);
+  border-right: 10px solid transparent;
+  z-index: 2;
+  left: 0px;
+  top: -20px;
+}
+
+.folder__body {
+  background-color: var(--windows-manilla);
+  min-width: 60px;
+  min-height: 60px;
+}
+
+.folder__bottom {
+  color: white;
+}

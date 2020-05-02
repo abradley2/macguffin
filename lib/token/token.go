@@ -12,6 +12,7 @@ import (
 
 	"github.com/abradley2/macguffin/lib/env"
 	"github.com/abradley2/macguffin/lib/request"
+	"github.com/pkg/errors"
 )
 
 const ghURL = "https://github.com/login/oauth/access_token"
@@ -24,7 +25,7 @@ type reqBody struct {
 	Code *string `json:"code"`
 }
 
-type githubUserResponse struct {
+type githubAccessTokenResponse struct {
 	AccessToken *string `json:"access_token"`
 }
 
@@ -110,8 +111,8 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ghUserRes := githubUserResponse{}
-	err = json.Unmarshal(ghResContent, &ghUserRes)
+	tokenRes := githubAccessTokenResponse{}
+	err = json.Unmarshal(ghResContent, &tokenRes)
 
 	if err != nil {
 		logger.Printf(
@@ -123,7 +124,7 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ghUserRes.AccessToken == nil {
+	if tokenRes.AccessToken == nil {
 		logger.Printf(
 			"Failed to retrieve access token from github response: %s",
 			ghResContent,
@@ -133,7 +134,7 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := retrieveUser(logger, *ghUserRes.AccessToken)
+	user, err := retrieveUser(logger, *tokenRes.AccessToken)
 
 	if err != nil {
 		logger.Printf("Error retrieving gh user: %v", err)
@@ -142,7 +143,7 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := storeToken(r.Context(), ghUserRes, user, logger)
+	accessToken, err := storeToken(r.Context(), tokenRes, user, logger)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -173,8 +174,7 @@ func retrieveUser(logger *log.Logger, authToken string) (string, error) {
 	res, err := client.Do(req)
 
 	if err != nil {
-		logger.Printf("Error performing gh request to retrieve user: %v", err)
-		return user, err
+		return user, errors.Wrap(err, "Error performing gh request to retrieve user")
 	}
 
 	resContent, err := ioutil.ReadAll(
@@ -182,8 +182,7 @@ func retrieveUser(logger *log.Logger, authToken string) (string, error) {
 	)
 
 	if err != nil {
-		logger.Printf("Error reading gh response body to retrieve user: %v", err)
-		return user, err
+		return user, errors.Wrap(err, "Error reading gh response body to retrieve user")
 	}
 
 	if res.StatusCode >= 300 {
@@ -194,14 +193,11 @@ func retrieveUser(logger *log.Logger, authToken string) (string, error) {
 	err = json.Unmarshal(resContent, &ui)
 
 	if err != nil {
-		logger.Printf("Error decoding github user info: %v", err)
-		return user, err
+		return user, errors.Wrap(err, "Error decoding github user info")
 	}
 
 	if ui.ID == nil {
-		err = fmt.Errorf("Failed to retrieve user id from github user info")
-		logger.Printf(err.Error())
-		return user, err
+		return user, errors.Wrap(err, "Failed to retrieve user id from github user info")
 	}
 
 	return strconv.Itoa(*ui.ID), err

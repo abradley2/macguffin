@@ -1,5 +1,5 @@
 .dashboard-page {
-  padding-top: 24px;
+  padding-top: 0px;
 }
 
 .dashboard-textarea {
@@ -16,4 +16,20 @@
 .dashboard-window {
   max-width: 600px;
   margin: auto;
+  margin-top: 8px;
+}
+
+.dashboard-folderrow {
+  display: flex;
+}
+
+
+.dashboard-list {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.dashboard-listbutton {
+  margin-top: 24px;
 }

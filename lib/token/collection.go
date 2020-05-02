@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/abradley2/macguffin/lib"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,7 +18,7 @@ import (
 
 func storeToken(
 	ctx context.Context,
-	ghUserRes githubUserResponse,
+	ghUserRes githubAccessTokenResponse,
 	userID string,
 	logger *log.Logger,
 ) (string, error) {
@@ -44,10 +45,10 @@ func storeToken(
 
 	tc := lib.MongoDB.Collection(lib.TokensCollection, nil)
 
-	res, err := tc.InsertOne(ctx, doc, &options.InsertOneOptions{})
+	_, err = tc.InsertOne(ctx, doc, &options.InsertOneOptions{})
 
-	if res != nil {
-		fmt.Println(res.InsertedID)
+	if err != nil {
+		return "", errors.Wrap(err, "Could not insert user document into tokens collection")
 	}
 
 	checkUser(ctx, userID, false)
