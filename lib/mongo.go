@@ -39,7 +39,8 @@ func init() {
 		logger.Fatalf("Error creating mongo client: %v", err)
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	err = MongoClient.Connect(ctx)
 
 	if err != nil {

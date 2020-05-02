@@ -28,7 +28,7 @@ func storeToken(
 	h := sha256.New()
 	h.Write(
 		[]byte(
-			fmt.Sprintf("%s:%s", *ghUserRes.AccessToken, userID),
+			fmt.Sprintf("%s:%s", ghUserRes.AccessToken, userID),
 		),
 	)
 
@@ -38,7 +38,7 @@ func storeToken(
 
 	doc := bson.M{
 		"userID":      userID,
-		"accessToken": *ghUserRes.AccessToken,
+		"accessToken": ghUserRes.AccessToken,
 		"clientToken": token,
 		"createdAt":   primitive.NewDateTimeFromTime(time.Now()),
 	}
