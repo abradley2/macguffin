@@ -33,7 +33,11 @@ func main() {
 	mux.HandleFunc("/token", token.HandleFunc)
 	mux.HandleFunc("/articles", articles.HandleGetArticleList)
 
-	http.ListenAndServe(":8080", cors.Default().Handler(s))
+	err := http.ListenAndServe(":8080", cors.Default().Handler(s))
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 func index(w http.ResponseWriter, r *http.Request) {

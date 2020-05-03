@@ -15,13 +15,29 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var logger *log.Logger = log.New(os.Stderr, "mongo.go ", log.LstdFlags)
+
+// MacguffinsCollection articles about macguffins
+const MacguffinsCollection = "macguffins"
+
+// SitesCollection articles about sites
+const SitesCollection = "sites"
+
+// EventsCollection articles about events
+const EventsCollection = "events"
+
+// ArticleCollections All article collections
+var ArticleCollections = [3]string{
+	MacguffinsCollection,
+	SitesCollection,
+	EventsCollection,
+}
+
 // TokensCollection where we store tokens
 const TokensCollection = "tokens"
 
 // AgentsCollection where we store agent data
 const AgentsCollection = "agents"
-
-var logger *log.Logger = log.New(os.Stderr, "mongo.go ", log.LstdFlags)
 
 // MongoClient client for accessing mongodb instance
 var MongoClient *mongo.Client

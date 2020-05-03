@@ -1,41 +1,44 @@
 package articles
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/abradley2/macguffin/lib/request"
 )
 
-type articleList struct {
-	ItemTitle string `json:"itemTitle"`
-	ID        string `json:"id"`
-}
-
 // HandleGetArticleList return the articles we want to display opn an agent's initial dashboard
 func HandleGetArticleList(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := r.Context().Value(request.LoggerKey).(*log.Logger)
+
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Write([]byte("Method not allowed"))
 		return
 	}
 
-	logger := r.Context().Value(request.LoggerKey).(*log.Logger)
+	q := r.URL.Query()
 
-	artList := []articleList{}
+	artType := q.Get("type")
 
-	res, err := json.Marshal(artList)
+	if artType == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("missing required query parameter 'type'"))
+		return
+	}
+
+	js, err := getArticlesJSON(ctx, artType)
 
 	if err != nil {
-		logger.Printf("Failed to encoded article list to json: %v", err)
+		logger.Printf("Failed to get articles json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(res)
+	w.Write(js)
 }
 
 func HandleCreateArticle(w http.ResponseWriter, r *http.Request) {
