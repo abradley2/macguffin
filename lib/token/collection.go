@@ -16,6 +16,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type UserTokenData struct {
+	UserID      string `json:"userID"`
+	AccessToken string `json:"accessToken"`
+	ClientToken string `json:"clientToken"`
+}
+
+type UserData struct {
+	UserID string `json:"userID"`
+}
+
 func storeToken(
 	ctx context.Context,
 	ghUserRes githubAccessTokenResponse,
@@ -101,4 +111,67 @@ func createUser(ctx context.Context, userID string) error {
 	}
 
 	return nil
+}
+
+type ErrTokenExpired struct{}
+
+func (_ ErrTokenExpired) Error() string {
+	return "Client token is expired"
+}
+
+func GetLoggedInUser(ctx context.Context, clientToken string) (UserData, error) {
+	var (
+		loggedInUser UserData
+		err          error
+	)
+
+	tokens := lib.MongoDB.Collection(lib.TokensCollection)
+
+	tokensRes := tokens.FindOne(
+		ctx,
+		bson.M{
+			"clientToken": bson.M{
+				"$eq": clientToken,
+			},
+		},
+		&options.FindOneOptions{},
+	)
+
+	if tokensRes.Err() == mongo.ErrNoDocuments {
+		return loggedInUser, ErrTokenExpired{}
+	}
+
+	tokenData := UserTokenData{}
+
+	err = tokensRes.Decode(&tokenData)
+
+	if err != nil {
+		return loggedInUser, errors.Wrap(err, "Failed to decode token document from db")
+	}
+
+	agents := lib.MongoDB.Collection(lib.AgentsCollection)
+
+	userRes := agents.FindOne(
+		ctx,
+		bson.M{
+			"userID": bson.M{
+				"$eq": tokenData.UserID,
+			},
+		},
+		&options.FindOneOptions{},
+	)
+
+	if userRes.Err() == mongo.ErrNoDocuments {
+		return loggedInUser, fmt.Errorf("Failed to find user for token userID: %s", tokenData.UserID)
+	}
+
+	user := UserData{}
+
+	err = userRes.Decode(&user)
+
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to decode agent document into user data for userID: %s", tokenData.UserID)
+	}
+
+	return loggedInUser, err
 }

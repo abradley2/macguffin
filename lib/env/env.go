@@ -1,6 +1,7 @@
 package env
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -72,5 +73,11 @@ func checkVar(envMap map[string]string, varName string) string {
 	if val, ok := envMap[varName]; ok {
 		os.Setenv(varName, val)
 	}
-	return os.Getenv(varName)
+	v := os.Getenv(varName)
+	if v == "" {
+		panic(
+			fmt.Errorf("Failed to find environment variable: %s", varName),
+		)
+	}
+	return v
 }
