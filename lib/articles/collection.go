@@ -16,13 +16,14 @@ import (
 )
 
 type article struct {
-	ItemTitle string `json:"itemTitle"`
-	Thumbnail string `json:"string,omitempty"`
-	ID        string `json:"id"`
-	Content   string `json:"content"`
-	CreatedAt string `json:"createdAt"`
-	Approved  bool   `json:"approved"`
-	Creator   string `json:"creator"`
+	ItemTitle   string `json:"itemTitle"`
+	Thumbnail   string `json:"string,omitempty"`
+	ID          string `json:"id"`
+	Content     string `json:"content"`
+	CreatedAt   string `json:"createdAt"`
+	Approved    bool   `json:"approved"`
+	Creator     string `json:"creator"`
+	ArticleType string `json:"articleType"`
 }
 
 func getArticlesJSON(ctx context.Context, artType string) ([]byte, error) {
@@ -68,7 +69,7 @@ func getArticlesJSON(ctx context.Context, artType string) ([]byte, error) {
 	return json.Marshal(artList)
 }
 
-func createArticle(ctx context.Context, clientToken string, artType string, art article) (string, error) {
+func createArticle(ctx context.Context, clientToken string, art article) (string, error) {
 	var err error
 	var createdID string
 
@@ -78,7 +79,7 @@ func createArticle(ctx context.Context, clientToken string, artType string, art 
 		return createdID, errors.Wrap(err, "Failed to get logged in user")
 	}
 
-	c, err := articleCollection(artType)
+	c, err := articleCollection(art.ArticleType)
 
 	if err != nil {
 		return createdID, errors.Wrap(err, "Could not get collection to create article")
@@ -87,12 +88,13 @@ func createArticle(ctx context.Context, clientToken string, artType string, art 
 	insRes, err := c.InsertOne(
 		ctx,
 		bson.M{
-			"Creator":   user.UserID,
-			"Content":   art.Content,
-			"Approved":  false,
-			"CreatedAt": primitive.NewDateTimeFromTime(time.Now()),
-			"ItemTitle": art.ItemTitle,
-			"Thumbnail": art.Thumbnail,
+			"Creator":     user.UserID,
+			"Content":     art.Content,
+			"Approved":    false,
+			"CreatedAt":   primitive.NewDateTimeFromTime(time.Now()),
+			"ItemTitle":   art.ItemTitle,
+			"Thumbnail":   art.Thumbnail,
+			"ArticleType": art.ArticleType,
 		},
 		&options.InsertOneOptions{},
 	)
@@ -101,11 +103,15 @@ func createArticle(ctx context.Context, clientToken string, artType string, art 
 		return createdID, errors.Wrapf(err, "Failed to insert document into db for user: %s\n%s", user.UserID, art.ItemTitle)
 	}
 
-	if oid, ok := insRes.InsertedID.(*primitive.ObjectID); ok {
+	if oid, ok := insRes.InsertedID.(primitive.ObjectID); ok {
 		createdID = oid.Hex()
 	}
 
 	return createdID, err
+}
+
+func updateArticle(ctx context.Context) {
+
 }
 
 func articleCollection(artType string) (*mongo.Collection, error) {

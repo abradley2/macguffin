@@ -165,9 +165,7 @@ func GetLoggedInUser(ctx context.Context, clientToken string) (UserData, error) 
 		return loggedInUser, fmt.Errorf("Failed to find user for token userID: %s", tokenData.UserID)
 	}
 
-	user := UserData{}
-
-	err = userRes.Decode(&user)
+	err = userRes.Decode(&loggedInUser)
 
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to decode agent document into user data for userID: %s", tokenData.UserID)

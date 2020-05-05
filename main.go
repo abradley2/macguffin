@@ -32,6 +32,7 @@ func main() {
 	mux.HandleFunc("/log", clientLog)
 	mux.HandleFunc("/token", token.HandleFunc)
 	mux.HandleFunc("/articles", articles.HandleGetArticleList)
+	mux.HandleFunc("/create-article", articles.HandleCreateArticle)
 
 	err := http.ListenAndServe(":8080", cors.Default().Handler(s))
 
