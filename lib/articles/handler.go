@@ -32,7 +32,10 @@ func HandleGetArticleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	js, err := getArticlesJSON(ctx, artType)
+	js, err := getArticlesJSON(ctx, getArticlesJSONOptions{
+		articleType: artType,
+		creator:     q.Get("creator"),
+	})
 
 	if err != nil {
 		logger.Printf("Failed to get articles json: %v", err)
@@ -45,6 +48,7 @@ func HandleGetArticleList(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
+// HandleCreateArticle creates a new article and adds it to the db
 func HandleCreateArticle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := r.Context().Value(request.LoggerKey).(*log.Logger)

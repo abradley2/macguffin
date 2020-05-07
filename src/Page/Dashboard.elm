@@ -47,7 +47,7 @@ getMacguffinItems flags =
         , headers = []
         , method = "GET"
         , tracker = Just getItemsTracker
-        , url = crossOrigin flags.apiUrl [ "/articles" ] [ string "sort" "createdDate" ]
+        , url = crossOrigin flags.apiUrl [ "/articles" ] [ string "type" "macguffins" ]
         , timeout = Just 1000
         }
 
@@ -84,7 +84,8 @@ update flags msg model =
 view : Flags -> Model -> H.Html Msg
 view flags model =
     H.div [ A.class "dashboard-page" ]
-        [ H.div [] [
+        [ H.div [ A.class "dashboard-modalcontainer" ] []
+        , H.div [] [
             H.input [ A.class "textinput", A.placeholder "Search Query" ] []
             , H.button [ A.class "button" ] [ H.text "GO" ]
         ]

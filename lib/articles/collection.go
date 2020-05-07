@@ -26,10 +26,41 @@ type article struct {
 	ArticleType string `json:"articleType"`
 }
 
-func getArticlesJSON(ctx context.Context, artType string) ([]byte, error) {
+type getArticlesJSONOptions struct {
+	articleType string
+	creator     string
+}
+
+func (opts getArticlesJSONOptions) toQuery() (bson.M, error) {
+	var err error
+	q := make(map[string]interface{})
+
+	q["approved"] = bson.M{
+		"$eq": true,
+	}
+
+	q["articleType"] = bson.M{
+		"$eq": opts.articleType,
+	}
+
+	if opts.creator != "" {
+		q["creator"] = bson.M{
+			"$eq": opts.creator,
+		}
+	}
+
+	if opts.articleType == "" {
+		err = fmt.Errorf("getArticlesOptions missing required parameter 'articleType'")
+	}
+
+	return q, err
+}
+
+func getArticlesJSON(ctx context.Context, opts getArticlesJSONOptions) ([]byte, error) {
 	var (
-		js  []byte
-		err error
+		js      []byte
+		err     error
+		artType = opts.articleType
 	)
 
 	dlCtx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Second))
@@ -41,13 +72,15 @@ func getArticlesJSON(ctx context.Context, artType string) ([]byte, error) {
 		return js, errors.Wrap(err, "Could not get collection for getArticlesJSON")
 	}
 
+	findQuery, err := opts.toQuery()
+
+	if err != nil {
+		return js, errors.Wrap(err, "Could not generate query from getArticlesJSONOptions")
+	}
+
 	res, err := c.Find(
 		dlCtx,
-		bson.M{
-			"approved": bson.M{
-				"$eq": true,
-			},
-		},
+		findQuery,
 		&options.FindOptions{
 			Sort: bson.M{
 				"createdAt": 1,
@@ -60,7 +93,7 @@ func getArticlesJSON(ctx context.Context, artType string) ([]byte, error) {
 	}
 
 	artList := []article{}
-	err = res.All(dlCtx, artList)
+	err = res.All(dlCtx, &artList)
 
 	if err != nil {
 		return js, errors.Wrap(err, "Failed reading/decoding results of getArticles query")
@@ -103,8 +136,11 @@ func createArticle(ctx context.Context, clientToken string, art article) (string
 		return createdID, errors.Wrapf(err, "Failed to insert document into db for user: %s\n%s", user.UserID, art.ItemTitle)
 	}
 
-	if oid, ok := insRes.InsertedID.(primitive.ObjectID); ok {
-		createdID = oid.Hex()
+	switch t := insRes.InsertedID.(type) {
+	case primitive.ObjectID:
+		createdID = t.Hex()
+	default:
+		err = fmt.Errorf("Failed to decode created objectId into hex")
 	}
 
 	return createdID, err

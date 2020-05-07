@@ -69,11 +69,11 @@ func retrieveGithubToken(ctx context.Context, logger *log.Logger, code string) (
 	err = json.Unmarshal(ghResContent, &tokenRes)
 
 	if err != nil {
-		return tokenRes, errors.Wrap(err, "Could not decode gh token response content")
+		return tokenRes, errors.Wrapf(err, "Could not decode gh token response content: \n%s", ghResContent)
 	}
 
 	if tokenRes.AccessToken == "" {
-		return tokenRes, fmt.Errorf("Access token missing in gh token response")
+		return tokenRes, fmt.Errorf("Access token missing in gh token response: \n%s", ghResContent)
 	}
 
 	return tokenRes, err

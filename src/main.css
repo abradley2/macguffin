@@ -13,6 +13,7 @@ body {
   background-color: var(--windows-teal);
   color: white;
   margin: 0px;
+  position: relative;
 }
 
 
@@ -22,6 +23,7 @@ body {
   position: absolute;
   display: flex;
   flex-flow: column;
+  z-index: 1000;
 }
 
 .app-errors__error {
@@ -90,43 +92,6 @@ body {
   text-transform: uppercase;
   color: var(--windows-blue);
   padding: 8px 32px;
-}
-
-/** Folder.elm **/
-
-.folder {
-  margin: 20px;
-  width: 80px;
-  display: inline-block;
-  position: relative;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: bolder;
-  text-align: center;
-}
-
-.folder__top {
-  position: absolute;
-  height: 0px;
-  border-bottom: 10px solid var(--windows-manilla-border);
-  border-left: 15px solid var(--windows-manilla-border);
-  border-right: 10px solid transparent;
-  z-index: 2;
-  left: 0px;
-  top: -10px;
-}
-
-.folder__body {
-  background-color: var(--windows-manilla);
-  border: 2px outset var(--windows-manilla-border);
-  min-width: 60px;
-  box-sizing: border-box;
-  min-height: 60px;
-}
-
-.folder__bottom {
-  padding-top: 4px;
-  color: white;
 }
 
 
