@@ -46,6 +46,7 @@ var MongoClient *mongo.Client
 var MongoDB *mongo.Database
 
 func init() {
+	logger.Printf("Initializing db")
 	var err error
 
 	mongoURI := fmt.Sprintf("mongodb://%s:%s", env.MongoHost, env.MongoPort)

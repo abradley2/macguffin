@@ -1,7 +1,6 @@
 package env
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -34,8 +33,6 @@ func init() {
 		wd,
 		"lib/env/.env",
 	)
-
-	logger.Printf("Reading env from path: %s", p)
 
 	f, err := os.OpenFile(p, os.O_RDONLY, 04)
 
@@ -75,9 +72,7 @@ func checkVar(envMap map[string]string, varName string) string {
 	}
 	v := os.Getenv(varName)
 	if v == "" {
-		panic(
-			fmt.Errorf("Failed to find environment variable: %s", varName),
-		)
+		logger.Fatalf("Failed to find environment variable: %s", varName)
 	}
 	return v
 }

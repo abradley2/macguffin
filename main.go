@@ -7,12 +7,15 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/abradley2/macguffin/lib/articles"
 	"github.com/abradley2/macguffin/lib/request"
 	"github.com/abradley2/macguffin/lib/token"
 	"github.com/rs/cors"
 )
+
+var logger = log.New(os.Stderr, "main.go ", log.LstdFlags)
 
 type server struct {
 	multiplexer *http.ServeMux
@@ -25,8 +28,23 @@ func (s server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	err := run()
+
+	if err != nil {
+		logger.Printf("Error running server: %v", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	mux := http.NewServeMux()
 	s := server{mux}
+
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+	})
 
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/log", clientLog)
@@ -34,11 +52,7 @@ func main() {
 	mux.HandleFunc("/articles", articles.HandleGetArticleList)
 	mux.HandleFunc("/create-article", articles.HandleCreateArticle)
 
-	err := http.ListenAndServe(":8080", cors.Default().Handler(s))
-
-	if err != nil {
-		panic(err)
-	}
+	return http.ListenAndServe(":8080", c.Handler(s))
 }
 
 func index(w http.ResponseWriter, r *http.Request) {

@@ -16,27 +16,34 @@ import (
 )
 
 type article struct {
-	ItemTitle   string `json:"itemTitle"`
-	Thumbnail   string `json:"string,omitempty"`
-	ID          string `json:"id"`
-	Content     string `json:"content"`
-	CreatedAt   string `json:"createdAt"`
-	Approved    bool   `json:"approved"`
-	Creator     string `json:"creator"`
-	ArticleType string `json:"articleType"`
+	ItemTitle   string    `json:"itemTitle"`
+	Thumbnail   string    `json:"string,omitempty"`
+	ID          string    `json:"_id" bson:"_id"`
+	Content     string    `json:"content"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Approved    bool      `json:"approved"`
+	Creator     string    `json:"creator"`
+	ArticleType string    `json:"articleType"`
 }
 
 type getArticlesJSONOptions struct {
+	userID      string
 	articleType string
 	creator     string
 }
 
-func (opts getArticlesJSONOptions) toQuery() (bson.M, error) {
+var admins = map[string]bool{
+	"8582764": true,
+}
+
+func (opts getArticlesJSONOptions) toQuery(userID string) (bson.M, error) {
 	var err error
 	q := make(map[string]interface{})
 
-	q["approved"] = bson.M{
-		"$eq": true,
+	if admins[userID] == false {
+		q["approved"] = bson.M{
+			"$eq": true,
+		}
 	}
 
 	q["articleType"] = bson.M{
@@ -72,7 +79,7 @@ func getArticlesJSON(ctx context.Context, opts getArticlesJSONOptions) ([]byte, 
 		return js, errors.Wrap(err, "Could not get collection for getArticlesJSON")
 	}
 
-	findQuery, err := opts.toQuery()
+	findQuery, err := opts.toQuery(opts.userID)
 
 	if err != nil {
 		return js, errors.Wrap(err, "Could not generate query from getArticlesJSONOptions")
@@ -121,13 +128,13 @@ func createArticle(ctx context.Context, clientToken string, art article) (string
 	insRes, err := c.InsertOne(
 		ctx,
 		bson.M{
-			"Creator":     user.UserID,
-			"Content":     art.Content,
-			"Approved":    false,
-			"CreatedAt":   primitive.NewDateTimeFromTime(time.Now()),
-			"ItemTitle":   art.ItemTitle,
-			"Thumbnail":   art.Thumbnail,
-			"ArticleType": art.ArticleType,
+			"creator":     user.UserID,
+			"content":     art.Content,
+			"approved":    false,
+			"createdAt":   primitive.NewDateTimeFromTime(time.Now()),
+			"itemTitle":   art.ItemTitle,
+			"thumbnail":   art.Thumbnail,
+			"articleType": art.ArticleType,
 		},
 		&options.InsertOneOptions{},
 	)

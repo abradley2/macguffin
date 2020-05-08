@@ -55,7 +55,7 @@ modelWithRoute model route =
                 |> resolve
 
         Just DashboardRoute ->
-            DashboardPage.init model.flags
+            DashboardPage.init model.token model.flags
                 |> mapModel (\dashboard -> { model | page = DashboardPage dashboard })
                 |> mapMsg (DashboardMsg >> PageMsg)
                 |> resolve

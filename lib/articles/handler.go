@@ -9,12 +9,17 @@ import (
 	"net/http"
 
 	"github.com/abradley2/macguffin/lib/request"
+	"github.com/abradley2/macguffin/lib/token"
 )
 
 // HandleGetArticleList return the articles we want to display opn an agent's initial dashboard
 func HandleGetArticleList(w http.ResponseWriter, r *http.Request) {
+	var userID string
+	clientToken := r.Header.Get("Authorization")
 	ctx := r.Context()
 	logger := r.Context().Value(request.LoggerKey).(*log.Logger)
+
+	logger.Printf("HandleGetArticleList")
 
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -32,9 +37,23 @@ func HandleGetArticleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if clientToken != "" {
+		userData, err := token.GetLoggedInUser(ctx, clientToken)
+
+		if err != nil {
+			logger.Printf("Error retrieving token: %v", err)
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Invalid Authorization token"))
+			return
+		}
+
+		userID = userData.UserID
+	}
+
 	js, err := getArticlesJSON(ctx, getArticlesJSONOptions{
 		articleType: artType,
 		creator:     q.Get("creator"),
+		userID:      userID,
 	})
 
 	if err != nil {

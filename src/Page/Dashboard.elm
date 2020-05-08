@@ -1,6 +1,7 @@
 module Page.Dashboard exposing (Model, Msg(..), init, update, view)
 
 import ComponentResult exposing (ComponentResult, withCmds, withModel)
+import ExtMsg exposing (Token(..))
 import Flags exposing (Flags)
 import Html as H
 import Html.Attributes as A
@@ -10,6 +11,12 @@ import Json.Decode as D
 import RemoteData exposing (RemoteData(..), WebData)
 import Url.Builder exposing (crossOrigin, string)
 import View.Folder as Folder
+
+
+type Modal
+    = Profile
+    | ContainmentSites
+    | Protocols
 
 
 type alias MacguffinItem =
@@ -24,8 +31,8 @@ type alias MacguffinItem =
 decodeMacguffinItem : D.Decoder MacguffinItem
 decodeMacguffinItem =
     D.map5 MacguffinItem
-        (D.field "name" D.string)
-        (D.field "threatLevel" D.string)
+        (D.field "itemTitle" D.string)
+        (D.field "thumbnail" D.string)
         (D.field "id" D.string)
         (D.field "authorId" D.string)
         (D.field "createdDate" D.string)
@@ -36,18 +43,24 @@ getItemsTracker =
     "getItemsTracker"
 
 
-getMacguffinItems : Flags -> Cmd Msg
-getMacguffinItems flags =
+getMacguffinItems : Maybe Token -> Flags -> Cmd Msg
+getMacguffinItems mToken flags =
     Http.request
         { body = Http.emptyBody
         , expect =
             Http.expectJson
                 FetchedMacguffinItems
                 (D.list decodeMacguffinItem)
-        , headers = []
+        , headers =
+            case mToken of
+                Just (Token token) ->
+                    [ Http.header "Authorization" token ]
+
+                _ ->
+                    []
         , method = "GET"
         , tracker = Just getItemsTracker
-        , url = crossOrigin flags.apiUrl [ "/articles" ] [ string "type" "macguffins" ]
+        , url = crossOrigin flags.apiUrl [ "articles" ] [ string "type" "macguffins" ]
         , timeout = Just 1000
         }
 
@@ -60,19 +73,20 @@ type alias Model =
 type Msg
     = NoOp
     | FetchedMacguffinItems (Result Http.Error (List MacguffinItem))
+    | ToggleModal Modal
 
 
 type alias PageResult =
     ComponentResult Model Msg Never Never
 
 
-init : Flags -> PageResult
-init flags =
+init : Maybe Token ->  Flags -> PageResult
+init mToken flags =
     withModel
         { macguffinItems = Loading
         }
         |> withCmds
-            [ getMacguffinItems flags
+            [ getMacguffinItems mToken flags
             ]
 
 
@@ -85,16 +99,16 @@ view : Flags -> Model -> H.Html Msg
 view flags model =
     H.div [ A.class "dashboard-page" ]
         [ H.div [ A.class "dashboard-modalcontainer" ] []
-        , H.div [] [
-            H.input [ A.class "textinput", A.placeholder "Search Query" ] []
+        , H.div []
+            [ H.input [ A.class "textinput", A.placeholder "Search Query" ] []
             , H.button [ A.class "button" ] [ H.text "GO" ]
-        ]
+            ]
         , mainWindowView flags model
         , H.div
             [ A.class "dashboard-folderrow" ]
-            [ Folder.view [] "Agent Profile"
-            , Folder.view [] "Containment Sites"
-            , Folder.view [] "Protocols"
+            [ Folder.view [ E.onClick <| ToggleModal Profile ] "Agent Profile"
+            , Folder.view [ E.onClick <| ToggleModal ContainmentSites ] "Containment Sites"
+            , Folder.view [ E.onClick <| ToggleModal Protocols ] "Protocols"
             ]
         ]
 
@@ -122,13 +136,12 @@ mainWindowView flags model =
                     ]
                 , H.div
                     []
-                    [
-                        H.div
-                            [ A.class "dashboard-list" ]
-                            [ H.button [ A.class "button dashboard-listbutton" ] [ H.text "MAC-070 Crystal Skull" ]
-                            , H.button [ A.class "button dashboard-listbutton" ] [ H.text "MAC-854 Sith Dagger" ]
-                            , H.button [ A.class "button dashboard-listbutton" ] [ H.text "MAC-091 Soul Stone" ]
-                            ]
+                    [ H.div
+                        [ A.class "dashboard-list" ]
+                        [ H.button [ A.class "button dashboard-listbutton" ] [ H.text "MAC-070 Crystal Skull" ]
+                        , H.button [ A.class "button dashboard-listbutton" ] [ H.text "MAC-854 Sith Dagger" ]
+                        , H.button [ A.class "button dashboard-listbutton" ] [ H.text "MAC-091 Soul Stone" ]
+                        ]
                     ]
                 ]
             ]
