@@ -16,14 +16,14 @@ import (
 )
 
 type article struct {
-	ItemTitle   string    `json:"itemTitle"`
-	Thumbnail   string    `json:"string,omitempty"`
+	ItemTitle   string    `json:"itemTitle" bson:"itemTitle"`
+	Thumbnail   string    `json:"string,omitempty" bson:"string,omitempty"`
 	ID          string    `json:"_id" bson:"_id"`
-	Content     string    `json:"content"`
-	CreatedAt   time.Time `json:"createdAt"`
-	Approved    bool      `json:"approved"`
-	Creator     string    `json:"creator"`
-	ArticleType string    `json:"articleType"`
+	Content     string    `json:"content" bson:"content"`
+	CreatedAt   time.Time `json:"createdAt" bson:"createdAt"`
+	Approved    bool      `json:"approved" bson:"approved"`
+	Creator     string    `json:"creator" bson:"creator"`
+	ArticleType string    `json:"articleType" bson:"articleType"`
 }
 
 type getArticlesJSONOptions struct {

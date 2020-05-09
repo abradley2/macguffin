@@ -21,21 +21,23 @@ type Modal
 
 type alias MacguffinItem =
     { name : String
-    , threatLevel : String
+    , thumbnail : Maybe String
     , id : String
-    , authorId : String
-    , createdDate : String
+    , creator : String
+    , createdAt : String
+    , approved : Bool
     }
 
 
 decodeMacguffinItem : D.Decoder MacguffinItem
 decodeMacguffinItem =
-    D.map5 MacguffinItem
+    D.map6 MacguffinItem
         (D.field "itemTitle" D.string)
-        (D.field "thumbnail" D.string)
-        (D.field "id" D.string)
-        (D.field "authorId" D.string)
-        (D.field "createdDate" D.string)
+        (D.maybe <| D.field "thumbnail" D.string)
+        (D.field "_id" D.string)
+        (D.field "creator" D.string)
+        (D.field "createdAt" D.string)
+        (D.field "approved" D.bool)
 
 
 getItemsTracker : String
@@ -71,8 +73,7 @@ type alias Model =
 
 
 type Msg
-    = NoOp
-    | FetchedMacguffinItems (Result Http.Error (List MacguffinItem))
+    = FetchedMacguffinItems (Result Http.Error (List MacguffinItem))
     | ToggleModal Modal
 
 
@@ -80,7 +81,7 @@ type alias PageResult =
     ComponentResult Model Msg Never Never
 
 
-init : Maybe Token ->  Flags -> PageResult
+init : Maybe Token -> Flags -> PageResult
 init mToken flags =
     withModel
         { macguffinItems = Loading
@@ -92,7 +93,17 @@ init mToken flags =
 
 update : Flags -> Msg -> Model -> PageResult
 update flags msg model =
-    withModel model
+    case msg of
+        FetchedMacguffinItems httpRes ->
+            case httpRes of
+                Result.Ok macguffinItems ->
+                    withModel { model | macguffinItems = Success macguffinItems }
+
+                Result.Err httpErr ->
+                    withModel model
+
+        ToggleModal nextModal ->
+            withModel model
 
 
 view : Flags -> Model -> H.Html Msg
