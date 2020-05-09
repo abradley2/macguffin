@@ -27,17 +27,45 @@ func (s server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.multiplexer.ServeHTTP(w, r.WithContext(ctx))
 }
 
+type handler = func(w http.ResponseWriter, r *http.Request)
+
+func setupRoute(mux *http.ServeMux, method string, url string, h handler) {
+	mux.HandleFunc(url, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != method {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.Write([]byte("Method not allowed"))
+			return
+		}
+		h(w, r)
+	})
+}
+
 func (s server) initRoutes() {
 	mux := s.multiplexer
 
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/log", clientLog)
-	mux.HandleFunc("/token", token.HandleFunc)
 
-	mux.HandleFunc("/articles", func(w http.ResponseWriter, r *http.Request) {
+	setupRoute(mux, http.MethodPost, "/token", func(w http.ResponseWriter, r *http.Request) {
 		logger := request.NewLogger()
 
-		params := articles.GetArticleListParams{}
+		params := token.GetTokenParams{Logger: logger}
+		err := params.FromRequest(r)
+
+		if err != nil {
+			logger.Printf("Failed to initialze params from request for /token\n%v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		token.HandleGetToken(r.Context(), w, params)
+	})
+
+	setupRoute(mux, http.MethodGet, "/articles", func(w http.ResponseWriter, r *http.Request) {
+		logger := request.NewLogger()
+
+		params := articles.GetArticleListParams{Logger: logger}
 		err := params.FromRequest(r)
 
 		if err != nil {
@@ -50,10 +78,10 @@ func (s server) initRoutes() {
 		articles.HandleGetArticleList(r.Context(), w, params)
 	})
 
-	mux.HandleFunc("/create-article", func(w http.ResponseWriter, r *http.Request) {
+	setupRoute(mux, http.MethodPost, "/create-article", func(w http.ResponseWriter, r *http.Request) {
 		logger := request.NewLogger()
 
-		params := articles.CreateArticleParams{}
+		params := articles.CreateArticleParams{Logger: logger}
 		err := params.FromRequest(r)
 
 		if err != nil {

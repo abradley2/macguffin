@@ -98,16 +98,10 @@ func createUser(ctx context.Context, userID string) error {
 
 	agents := lib.MongoDB.Collection(lib.AgentsCollection)
 
-	res, err := agents.InsertOne(ctx, u, &options.InsertOneOptions{})
+	_, err := agents.InsertOne(ctx, u, &options.InsertOneOptions{})
 
 	if err != nil {
 		return err
-	}
-
-	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
-		id := oid.Hex()
-
-		fmt.Println(id)
 	}
 
 	return nil

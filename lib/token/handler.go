@@ -1,6 +1,7 @@
 package token
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,45 +9,50 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/abradley2/macguffin/lib/request"
+	"github.com/pkg/errors"
 )
 
-type reqBody struct {
-	Code *string `json:"code"`
+type getTokenBody struct {
+	Code string `json:"code"`
 }
 
-// HandleFunc returns on oauth token from github
-func HandleFunc(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	logger := ctx.Value(request.LoggerKey).(*log.Logger)
+// GetTokenParams _
+type GetTokenParams struct {
+	Logger *log.Logger
 
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write([]byte("Method not allowed"))
-		return
-	}
+	// body - required
+	// simple json body with a "code" field for github oauth
+	body getTokenBody
+}
 
+// FromRequest build GetTokenParams from an http.Request
+func (params *GetTokenParams) FromRequest(r *http.Request) error {
 	bodyContent, err := ioutil.ReadAll(
 		io.LimitReader(r.Body, 50000),
 	)
 
 	if err != nil {
-		logger.Printf("Failed to read request body %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal server error"))
-		return
+		return errors.Wrap(err, "Failed to read bodyContent from request")
 	}
 
-	var body reqBody
-	json.Unmarshal(bodyContent, &body)
+	err = json.Unmarshal(bodyContent, &params.body)
 
-	if body.Code == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Missing Code parameter"))
-		return
+	if err != nil {
+		return errors.Wrap(err, "Failed to unmarshal body json")
 	}
 
-	tokenRes, err := retrieveGithubToken(ctx, logger, *body.Code)
+	if params.body.Code == "" {
+		return fmt.Errorf("Body missing required parameter: 'code'")
+	}
+
+	return err
+}
+
+// HandleGetToken returns on oauth token from github
+func HandleGetToken(ctx context.Context, w http.ResponseWriter, params GetTokenParams) {
+	logger := params.Logger
+
+	tokenRes, err := retrieveGithubToken(ctx, logger, params.body.Code)
 
 	if err != nil {
 		logger.Printf("Error retrieving access token for gh user: %v", err)
@@ -69,7 +75,7 @@ func HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 
 	default:
-		accessToken, err := storeToken(r.Context(), tokenRes, user, logger)
+		accessToken, err := storeToken(ctx, tokenRes, user, logger)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

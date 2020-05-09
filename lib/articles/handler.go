@@ -9,13 +9,14 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/abradley2/macguffin/lib/request"
 	"github.com/abradley2/macguffin/lib/token"
 	"github.com/pkg/errors"
 )
 
 // GetArticleListParams _
 type GetArticleListParams struct {
+	Logger *log.Logger
+
 	// artType: query.type - required
 	// can be macguffins, sites, or events
 	// see ArticleCollections type in lib
@@ -48,7 +49,7 @@ func (params *GetArticleListParams) FromRequest(r *http.Request) error {
 
 // HandleGetArticleList return the articles we want to display opn an agent's initial dashboard
 func HandleGetArticleList(ctx context.Context, w http.ResponseWriter, params GetArticleListParams) {
-	logger := ctx.Value(request.LoggerKey).(*log.Logger)
+	logger := params.Logger
 
 	var userID string
 	if params.clientToken != "" {
@@ -71,7 +72,7 @@ func HandleGetArticleList(ctx context.Context, w http.ResponseWriter, params Get
 	})
 
 	if err != nil {
-		logger.Printf("Failed reading articles from db via getArticlesJSON:\n %v", err)
+		logger.Printf("Failed reading articles from db via getArticlesJSON: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
 		return
@@ -90,6 +91,8 @@ type createArticleBody struct {
 
 // CreateArticleParams _
 type CreateArticleParams struct {
+	Logger *log.Logger
+
 	// clientToken: headers.Authorization - optional
 	// token of the user who is creating the article
 	clientToken string
@@ -118,7 +121,7 @@ func (params *CreateArticleParams) FromRequest(r *http.Request) error {
 
 // HandleCreateArticle creates a new article and adds it to the db
 func HandleCreateArticle(ctx context.Context, w http.ResponseWriter, params CreateArticleParams) {
-	logger := ctx.Value(request.LoggerKey).(*log.Logger)
+	logger := params.Logger
 
 	body := params.body
 
