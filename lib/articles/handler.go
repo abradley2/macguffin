@@ -1,6 +1,7 @@
 package articles
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,35 +11,48 @@ import (
 
 	"github.com/abradley2/macguffin/lib/request"
 	"github.com/abradley2/macguffin/lib/token"
+	"github.com/pkg/errors"
 )
 
-// HandleGetArticleList return the articles we want to display opn an agent's initial dashboard
-func HandleGetArticleList(w http.ResponseWriter, r *http.Request) {
-	var userID string
-	clientToken := r.Header.Get("Authorization")
-	ctx := r.Context()
-	logger := r.Context().Value(request.LoggerKey).(*log.Logger)
+// GetArticleListParams _
+type GetArticleListParams struct {
+	// artType: query.type - required
+	// can be macguffins, sites, or events
+	// see ArticleCollections type in lib
+	artType string
 
-	logger.Printf("HandleGetArticleList")
+	// clientToken: headers.Authorization - optional
+	// needed to determine if the requestor is an admin
+	// who can see unapproved articles
+	clientToken string
 
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write([]byte("Method not allowed"))
-		return
-	}
+	// creator: query.creator - optional
+	// filter which articles are sent back by creator's userID
+	creator string
+}
 
+// FromRequest create GetArticleListParams from an http.Request
+func (params *GetArticleListParams) FromRequest(r *http.Request) error {
+	var err error
 	q := r.URL.Query()
+	params.artType = q.Get("type")
+	params.creator = q.Get("creator")
+	params.clientToken = r.Header.Get("Authorization")
 
-	artType := q.Get("type")
-
-	if artType == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("missing required query parameter 'type'"))
-		return
+	if params.artType == "" {
+		err = fmt.Errorf("Missing required parameter query.type")
 	}
 
-	if clientToken != "" {
-		userData, err := token.GetLoggedInUser(ctx, clientToken)
+	return err
+}
+
+// HandleGetArticleList return the articles we want to display opn an agent's initial dashboard
+func HandleGetArticleList(ctx context.Context, w http.ResponseWriter, params GetArticleListParams) {
+	logger := ctx.Value(request.LoggerKey).(*log.Logger)
+
+	var userID string
+	if params.clientToken != "" {
+		userData, err := token.GetLoggedInUser(ctx, params.clientToken)
 
 		if err != nil {
 			logger.Printf("Error retrieving token: %v", err)
@@ -51,13 +65,13 @@ func HandleGetArticleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	js, err := getArticlesJSON(ctx, getArticlesJSONOptions{
-		articleType: artType,
-		creator:     q.Get("creator"),
+		articleType: params.artType,
+		creator:     params.creator,
 		userID:      userID,
 	})
 
 	if err != nil {
-		logger.Printf("Failed to get articles json: %v", err)
+		logger.Printf("Failed reading articles from db via getArticlesJSON:\n %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
 		return
@@ -67,48 +81,55 @@ func HandleGetArticleList(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
+type createArticleBody struct {
+	ItemTitle   string `json:"itemTitle"`
+	Thumbnail   string `json:"string,omitempty"`
+	Content     string `json:"content"`
+	ArticleType string `json:"articleType"`
+}
+
+// CreateArticleParams _
+type CreateArticleParams struct {
+	// clientToken: headers.Authorization - optional
+	// token of the user who is creating the article
+	clientToken string
+
+	// body - required
+	// the article to be created, without
+	body createArticleBody
+}
+
+// FromRequest get CreateArticleParams from an http.Request
+func (params *CreateArticleParams) FromRequest(r *http.Request) error {
+	params.clientToken = r.Header.Get("Authorization")
+
+	if params.clientToken == "" {
+		return fmt.Errorf("Missing required parameter: headers.Authorization")
+	}
+
+	bodyContent, err := ioutil.ReadAll(io.LimitReader(r.Body, 50000))
+
+	if err != nil {
+		return errors.Wrap(err, "Could not read request body")
+	}
+
+	return json.Unmarshal(bodyContent, &params.body)
+}
+
 // HandleCreateArticle creates a new article and adds it to the db
-func HandleCreateArticle(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	logger := r.Context().Value(request.LoggerKey).(*log.Logger)
+func HandleCreateArticle(ctx context.Context, w http.ResponseWriter, params CreateArticleParams) {
+	logger := ctx.Value(request.LoggerKey).(*log.Logger)
 
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write([]byte("Method not allowed"))
-		return
+	body := params.body
+
+	reqBodyArticle := article{
+		ItemTitle:   body.ItemTitle,
+		ArticleType: body.ArticleType,
+		Content:     body.Content,
+		Thumbnail:   body.Thumbnail,
 	}
 
-	clientToken := r.Header.Get("Authorization")
-
-	if clientToken == "" {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("Missing Authorization header"))
-		return
-	}
-
-	reqBodyArticle := article{}
-
-	bodyContent, err := ioutil.ReadAll(
-		io.LimitReader(r.Body, 50000),
-	)
-
-	if err != nil {
-		logger.Printf("Error reading body content for create article endpoint: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal server error"))
-		return
-	}
-
-	err = json.Unmarshal(bodyContent, &reqBodyArticle)
-
-	if err != nil {
-		logger.Printf("Error decoding create article body content: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal server error"))
-		return
-	}
-
-	createdID, err := createArticle(ctx, clientToken, reqBodyArticle)
+	createdID, err := createArticle(ctx, params.clientToken, reqBodyArticle)
 
 	if err != nil {
 		logger.Printf("Error calling createArticle: %v", err)

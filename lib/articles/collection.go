@@ -76,13 +76,13 @@ func getArticlesJSON(ctx context.Context, opts getArticlesJSONOptions) ([]byte, 
 	c, err := articleCollection(artType)
 
 	if err != nil {
-		return js, errors.Wrap(err, "Could not get collection for getArticlesJSON")
+		return js, errors.Wrapf(err, "\nCould not get collection containing articles\n")
 	}
 
 	findQuery, err := opts.toQuery(opts.userID)
 
 	if err != nil {
-		return js, errors.Wrap(err, "Could not generate query from getArticlesJSONOptions")
+		return js, errors.Wrapf(err, "\nCould not generate query from getArticlesJSONOptions\n")
 	}
 
 	res, err := c.Find(
@@ -103,7 +103,7 @@ func getArticlesJSON(ctx context.Context, opts getArticlesJSONOptions) ([]byte, 
 	err = res.All(dlCtx, &artList)
 
 	if err != nil {
-		return js, errors.Wrap(err, "Failed reading/decoding results of getArticles query")
+		return js, errors.Wrapf(err, "Failed reading/decoding results of getArticles query\n")
 	}
 
 	return json.Marshal(artList)
@@ -122,7 +122,7 @@ func createArticle(ctx context.Context, clientToken string, art article) (string
 	c, err := articleCollection(art.ArticleType)
 
 	if err != nil {
-		return createdID, errors.Wrap(err, "Could not get collection to create article")
+		return createdID, errors.Wrapf(err, "Could not get collection to create article\n")
 	}
 
 	insRes, err := c.InsertOne(
@@ -169,8 +169,8 @@ func articleCollection(artType string) (*mongo.Collection, error) {
 
 	c = lib.MongoDB.Collection(artType)
 
-	if c == nil || collectionName == "" {
-		return c, fmt.Errorf("Failed to load collection: %s", artType)
+	if c == nil || collectionName != "" {
+		return c, fmt.Errorf("Failed to load collection with name = %s\n", artType)
 	}
 
 	return c, nil

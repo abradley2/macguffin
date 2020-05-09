@@ -27,6 +27,46 @@ func (s server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.multiplexer.ServeHTTP(w, r.WithContext(ctx))
 }
 
+func (s server) initRoutes() {
+	mux := s.multiplexer
+
+	mux.HandleFunc("/", index)
+	mux.HandleFunc("/log", clientLog)
+	mux.HandleFunc("/token", token.HandleFunc)
+
+	mux.HandleFunc("/articles", func(w http.ResponseWriter, r *http.Request) {
+		logger := request.NewLogger()
+
+		params := articles.GetArticleListParams{}
+		err := params.FromRequest(r)
+
+		if err != nil {
+			logger.Printf("Failed to initialize params from request for /articles\n%v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		articles.HandleGetArticleList(r.Context(), w, params)
+	})
+
+	mux.HandleFunc("/create-article", func(w http.ResponseWriter, r *http.Request) {
+		logger := request.NewLogger()
+
+		params := articles.CreateArticleParams{}
+		err := params.FromRequest(r)
+
+		if err != nil {
+			logger.Printf("Failed to initialize params from request for /create-article\n%v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		articles.HandleCreateArticle(r.Context(), w, params)
+	})
+}
+
 func main() {
 	err := run()
 
@@ -46,11 +86,7 @@ func run() error {
 		AllowCredentials: true,
 	})
 
-	mux.HandleFunc("/", index)
-	mux.HandleFunc("/log", clientLog)
-	mux.HandleFunc("/token", token.HandleFunc)
-	mux.HandleFunc("/articles", articles.HandleGetArticleList)
-	mux.HandleFunc("/create-article", articles.HandleCreateArticle)
+	s.initRoutes()
 
 	return http.ListenAndServe(":8080", c.Handler(s))
 }
