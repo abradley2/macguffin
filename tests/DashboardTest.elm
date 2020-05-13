@@ -68,4 +68,17 @@ suite =
                     |> Query.fromHtml
                     |> Query.has [ Selector.attribute <| A.attribute "data-test" "protocols-modal" ]
             )
+        , test "Should be able to close modals"
+            (\_ ->
+                DashboardPage.init token flags
+                    |> getModel
+                    |> DashboardPage.update flags (DashboardPage.ToggleModal DashboardPage.Protocols)
+                    |> getModel
+                    |> DashboardPage.update flags DashboardPage.CloseModal
+                    |> getModel
+                    |> DashboardPage.view token flags
+                    |> Query.fromHtml
+                    |> Query.findAll [ Selector.attribute <| A.attribute "data-test" "protocols-modal"]
+                    |> Query.count (Expect.equal 0)
+            )
         ]

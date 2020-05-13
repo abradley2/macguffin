@@ -1,7 +1,8 @@
 module Page.Dashboard exposing (Modal(..), Model, Msg(..), init, update, view)
 
-import ComponentResult exposing (ComponentResult, withCmds, withModel)
-import ExtMsg exposing (Token(..))
+import ComponentResult exposing (ComponentResult, withCmds, withExternalMsg, withModel)
+import Data.Http exposing (httpErrToString)
+import ExtMsg exposing (ExtMsg(..), Log, Token(..))
 import Flags exposing (Flags)
 import Html as H
 import Html.Attributes as A
@@ -76,10 +77,11 @@ type alias Model =
 type Msg
     = FetchedMacguffinItems (Result Http.Error (List MacguffinItem))
     | ToggleModal Modal
+    | CloseModal
 
 
 type alias PageResult =
-    ComponentResult Model Msg Never Never
+    ComponentResult Model Msg ExtMsg Never
 
 
 init : Maybe Token -> Flags -> PageResult
@@ -103,9 +105,18 @@ update flags msg model =
 
                 Result.Err httpErr ->
                     withModel model
+                        |> withExternalMsg
+                            (LogError
+                                { userMessage = Just "Failed to retrieve agent data"
+                                , logMessage = Just <| httpErrToString httpErr
+                                }
+                            )
 
         ToggleModal nextModal ->
             withModel { model | modal = Just nextModal }
+
+        CloseModal ->
+            withModel { model | modal = Nothing }
 
 
 view : Maybe Token -> Flags -> Model -> H.Html Msg
@@ -115,12 +126,15 @@ view mToken flags model =
             [ case model.modal of
                 Just Profile ->
                     profileModalView mToken flags model
+                        |> modalView "profile-modal"
 
                 Just Protocols ->
-                    placholderModalView mToken flags model
+                    protocolsModalView mToken flags model
+                        |> modalView "protocols-modal"
 
                 Just ContainmentSites ->
-                    placholderModalView mToken flags model
+                    containmentSitesModalView mToken flags model
+                        |> modalView "containment-sites-modal"
 
                 Nothing ->
                     H.text ""
@@ -174,17 +188,40 @@ mainWindowView flags model =
         ]
 
 
+modalView : String -> H.Html Msg -> H.Html Msg
+modalView title modal =
+    H.div
+        [ A.attribute "data-test" title
+        , A.class "window"
+        ]
+        [ H.div [ A.class "window__header" ]
+            [ H.button
+                [ A.class "button window__header__button"
+                , E.onClick CloseModal
+                ]
+                [ H.text "X" ]
+            ]
+        , H.div
+            []
+            [ modal ]
+        ]
+
+
 profileModalView : Maybe Token -> Flags -> Model -> H.Html Msg
-profileModalView mToken flags model =
+profileModalView mToken flags modal =
     H.div
-        [ A.attribute "data-test" "profile-modal"
-        ]
-        []
+        [ A.class "window__body" ]
+        [ H.text "Profile modal view" ]
 
 
-placholderModalView : Maybe Token -> Flags -> Model -> H.Html Msg
-placholderModalView mToken flags model =
+containmentSitesModalView : Maybe Token -> Flags -> Model -> H.Html Msg
+containmentSitesModalView mToken flags model =
     H.div
-        [ A.attribute "data-test" "placeholder-modal"
-        ]
-        []
+        [ A.class "window__body" ]
+        [ H.text "Containment sites modal view" ]
+
+protocolsModalView : Maybe Token -> Flags -> Model -> H.Html Msg
+protocolsModalView mToken flags model =
+    H.div
+        [ A.class "window__body" ]
+        [ H.text "Protocols modal view" ]

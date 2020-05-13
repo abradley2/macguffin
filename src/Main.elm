@@ -5,6 +5,7 @@ import Browser.Navigation exposing (Key, load, pushUrl, replaceUrl)
 import ComponentResult exposing (ComponentResult, applyExternalMsg, mapModel, mapMsg, resolve, withCmds, withExternalMsg, withModel)
 import ExtMsg exposing (ExtMsg(..), Log, Token(..))
 import Flags exposing (Flags)
+import Data.Http exposing (httpErrToString)
 import Html as H
 import Html.Attributes as A
 import Html.Events as E
@@ -58,6 +59,7 @@ modelWithRoute model route =
             DashboardPage.init model.token model.flags
                 |> mapModel (\dashboard -> { model | page = DashboardPage dashboard })
                 |> mapMsg (DashboardMsg >> PageMsg)
+                |> applyExternalMsg (handleExternalMsg model.key model.flags)
                 |> resolve
 
         Nothing ->
@@ -246,6 +248,7 @@ update msg model =
                     DashboardPage.update model.flags dashboardMsg dashboardPage
                         |> mapMsg (DashboardMsg >> PageMsg)
                         |> mapModel (\page -> { model | page = DashboardPage page })
+                        |> applyExternalMsg (handleExternalMsg model.key model.flags)
                         |> resolve
 
                 _ ->
