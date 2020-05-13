@@ -21,12 +21,25 @@ type Modal
 
 
 type alias UserProfile =
-    {}
-
+    { publicAgentID : Maybe String
+    , strength : Int
+    , dexterity : Int
+    , constitution : Int
+    , intelligence : Int
+    , wisdom : Int
+    , charisma : Int
+    }
 
 decodeUserProfile : D.Decoder UserProfile
 decodeUserProfile =
-    D.succeed UserProfile
+    D.map7 UserProfile
+        (D.maybe <| D.field "publicAgentID" D.string)
+        (D.field "strength" D.int)
+        (D.field "dexterity" D.int)
+        (D.field "constitution" D.int)
+        (D.field "intelligence" D.int)
+        (D.field "wisdom" D.int)
+        (D.field "charisma" D.int)
 
 
 getUserProfile : Flags -> Token -> Cmd Msg

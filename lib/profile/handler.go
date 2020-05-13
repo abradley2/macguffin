@@ -17,7 +17,7 @@ type GetProfileParams struct {
 }
 
 // FromRequest populate GetProfileParams from an http.Request
-func (params GetProfileParams) FromRequest(r *http.Request) error {
+func (params *GetProfileParams) FromRequest(r *http.Request) error {
 	var err error
 
 	params.clientToken = r.Header.Get("Authorization")
@@ -38,6 +38,7 @@ func HandleGetProfile(ctx context.Context, w http.ResponseWriter, params GetProf
 	if err != nil {
 		if err == token.ErrTokenExpired {
 			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte("Expired token"))
 			return
 		}
 		logger.Printf("Could not get logged in user when fetching profile: %v", err)
