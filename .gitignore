@@ -7,3 +7,4 @@ dist/
 DESIGN.md
 local-*
 .coverage/
+bundle.*
