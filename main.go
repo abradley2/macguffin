@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/abradley2/macguffin/lib/articles"
+	"github.com/abradley2/macguffin/lib/profile"
 	"github.com/abradley2/macguffin/lib/request"
 	"github.com/abradley2/macguffin/lib/token"
 	"github.com/rs/cors"
@@ -45,6 +46,22 @@ func (s server) initRoutes() {
 
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/log", clientLog)
+
+	setupRoute(mux, http.MethodGet, "/profile", func(w http.ResponseWriter, r *http.Request) {
+		logger := request.NewLogger()
+
+		params := profile.GetProfileParams{Logger: logger}
+		err := params.FromRequest(r)
+
+		if err != nil {
+			logger.Printf("Failed to initialze params from request to /profile\n%v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		profile.HandleGetProfile(r.Context(), w, params)
+	})
 
 	setupRoute(mux, http.MethodPost, "/token", func(w http.ResponseWriter, r *http.Request) {
 		logger := request.NewLogger()

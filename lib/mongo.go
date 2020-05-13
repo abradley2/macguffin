@@ -39,6 +39,9 @@ const TokensCollection = "tokens"
 // AgentsCollection where we store agent data
 const AgentsCollection = "agents"
 
+// ProfileCollection where we store profile data describing agents- this is mostly their stats
+const ProfileCollection = "agentprofiles"
+
 // MongoClient client for accessing mongodb instance
 var MongoClient *mongo.Client
 

@@ -107,11 +107,15 @@ func createUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-type ErrTokenExpired struct{}
+type errTokenExpired struct{}
 
-func (_ ErrTokenExpired) Error() string {
+// Error _
+func (errTokenExpired) Error() string {
 	return "Client token is expired"
 }
+
+// ErrTokenExpired indicates an expired token
+var ErrTokenExpired errTokenExpired
 
 func GetLoggedInUser(ctx context.Context, clientToken string) (UserData, error) {
 	var (
@@ -132,7 +136,7 @@ func GetLoggedInUser(ctx context.Context, clientToken string) (UserData, error) 
 	)
 
 	if tokensRes.Err() == mongo.ErrNoDocuments {
-		return loggedInUser, ErrTokenExpired{}
+		return loggedInUser, ErrTokenExpired
 	}
 
 	tokenData := UserTokenData{}
