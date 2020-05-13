@@ -1,4 +1,4 @@
-module Page.Dashboard exposing (Modal(..), Model, Msg(..), init, update, view)
+module Page.Dashboard exposing (Modal(..), Model, Msg(..), init, update, view, decodeUserProfile)
 
 import ComponentResult exposing (ComponentResult, applyExternalMsg, mapModel, mapMsg, withCmds, withExternalMsg, withModel)
 import Data.Http exposing (handlePossibleSessionTimeout, httpErrToString)
@@ -116,6 +116,30 @@ type alias Model =
     }
 
 
+{-| When we initialize the profile form, if we have a user loaded then use this
+to populate it's default values
+-}
+initProfileForm : Model -> ProfileForm.Model
+initProfileForm model =
+    let
+        default =
+            ProfileForm.init
+    in
+    case model.userProfile of
+        Success profile ->
+            { default
+                | charisma = profile.charisma
+                , wisdom = profile.wisdom
+                , intelligence = profile.intelligence
+                , strength = profile.strength
+                , dexterity = profile.dexterity
+                , constitution = profile.constitution
+            }
+
+        _ ->
+            default
+
+
 type Msg
     = FetchedMacguffinItems (Result Http.Error (List MacguffinItem))
     | FetchedUserProfile (Result Http.Error UserProfile)
@@ -201,7 +225,7 @@ update flags msg model =
                                     ProfileForm.Cancel ->
                                         mapModel (\newModel -> { newModel | modal = Nothing }) result
 
-                                    ProfileForm.Submit _->
+                                    ProfileForm.Submit _ ->
                                         mapModel (\newModel -> { newModel | modal = Nothing }) result
                             )
 
@@ -236,13 +260,19 @@ view mToken flags model =
                     H.text ""
             ]
         , H.div []
-            [ H.input [ A.class "textinput", A.placeholder "Search Query" ] []
+            [ H.input [ A.class "textinput", A.placeholder "Search Database" ] []
             , H.button [ A.class "button" ] [ H.text "GO" ]
             ]
         , mainWindowView flags model
         , H.div
             [ A.class "dashboard-folderrow" ]
-            [ Folder.view [ E.onClick <| ToggleModal (Profile ProfileForm.init) ] "Agent Profile"
+            [ Folder.view
+                [ A.attribute "data-test" "profile-form-button"
+                , E.onClick <|
+                    ToggleModal
+                        (Profile (initProfileForm model))
+                ]
+                "Agent Profile"
             , Folder.view [ E.onClick <| ToggleModal ContainmentSites ] "Containment Sites"
             , Folder.view [ E.onClick <| ToggleModal Protocols ] "Protocols"
             ]

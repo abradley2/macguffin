@@ -10,6 +10,7 @@
   position: absolute;
   top: 120px;
   left: calc(50% - 400px);
+  color: var(--windows-blue);
 }
 
 .dashboard-textarea {

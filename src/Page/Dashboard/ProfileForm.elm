@@ -110,7 +110,7 @@ statsTabView model =
         []
         [ H.div
             []
-            [ H.div [] [ H.text <| "Points remaining: " ++ String.fromInt (remainingPoints model) ]
+            [ H.b [] [ H.text <| "Points remaining: " ++ String.fromInt (remainingPoints model) ]
             ]
         , H.div
             []
@@ -142,6 +142,8 @@ rangeSliderView title currentValue handler =
             ]
             []
         , H.b
-            [ A.class "profilemodal__range__valuedisplay" ]
+            [ A.class "profilemodal__range__valuedisplay"
+            , A.attribute ("data-test-" ++ title) (String.fromInt currentValue)
+            ]
             [ H.text (String.fromInt currentValue) ]
         ]

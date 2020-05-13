@@ -1,13 +1,13 @@
 module DashboardTest exposing (..)
 
-import ComponentResult exposing (applyExternalMsg, escape, mapError, mapModel, mapMsg, resolve)
-import Expect exposing (Expectation)
+import ComponentResult exposing (applyExternalMsg, escape, resolve)
+import Expect
 import ExtMsg exposing (Token(..), hasRedirect)
 import Flags exposing (Flags)
-import Fuzz exposing (Fuzzer, int, list, string)
 import Html.Attributes as A
 import Http
 import Page.Dashboard as DashboardPage
+import Page.Dashboard.ProfileForm as ProfileForm
 import RemoteData exposing (RemoteData(..))
 import Test exposing (..)
 import Test.Html.Query as Query
@@ -49,7 +49,7 @@ suite =
             (\_ ->
                 DashboardPage.init token flags
                     |> getModel
-                    |> DashboardPage.update flags (DashboardPage.ToggleModal DashboardPage.Profile)
+                    |> DashboardPage.update flags (DashboardPage.ToggleModal <| DashboardPage.Profile ProfileForm.init)
                     |> getModel
                     |> DashboardPage.view token flags
                     |> Query.fromHtml

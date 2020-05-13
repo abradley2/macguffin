@@ -26,7 +26,15 @@ type userProfile struct {
 func getUserProfileJSON(ctx context.Context, userData token.UserData) ([]byte, error) {
 	var js []byte
 	var err error
-	var profile = userProfile{UserID: userData.UserID}
+	var profile = userProfile{
+		UserID:       userData.UserID,
+		Strength:     8,
+		Constitution: 8,
+		Dexterity:    8,
+		Intelligence: 8,
+		Wisdom:       8,
+		Charisma:     8,
+	}
 
 	c := lib.MongoDB.Collection(lib.ProfileCollection)
 
