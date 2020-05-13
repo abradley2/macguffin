@@ -1,4 +1,4 @@
-module Page.Dashboard exposing (Model, Msg(..), init, update, view)
+module Page.Dashboard exposing (Modal(..), Model, Msg(..), init, update, view)
 
 import ComponentResult exposing (ComponentResult, withCmds, withModel)
 import ExtMsg exposing (Token(..))
@@ -69,6 +69,7 @@ getMacguffinItems mToken flags =
 
 type alias Model =
     { macguffinItems : WebData (List MacguffinItem)
+    , modal : Maybe Modal
     }
 
 
@@ -85,6 +86,7 @@ init : Maybe Token -> Flags -> PageResult
 init mToken flags =
     withModel
         { macguffinItems = Loading
+        , modal = Nothing
         }
         |> withCmds
             [ getMacguffinItems mToken flags
@@ -103,13 +105,26 @@ update flags msg model =
                     withModel model
 
         ToggleModal nextModal ->
-            withModel model
+            withModel { model | modal = Just nextModal }
 
 
-view : Flags -> Model -> H.Html Msg
-view flags model =
+view : Maybe Token -> Flags -> Model -> H.Html Msg
+view mToken flags model =
     H.div [ A.class "dashboard-page" ]
-        [ H.div [ A.class "dashboard-modalcontainer" ] []
+        [ H.div [ A.class "dashboard-modalcontainer" ]
+            [ case model.modal of
+                Just Profile ->
+                    profileModalView mToken flags model
+
+                Just Protocols ->
+                    placholderModalView mToken flags model
+
+                Just ContainmentSites ->
+                    placholderModalView mToken flags model
+
+                Nothing ->
+                    H.text ""
+            ]
         , H.div []
             [ H.input [ A.class "textinput", A.placeholder "Search Query" ] []
             , H.button [ A.class "button" ] [ H.text "GO" ]
@@ -157,3 +172,19 @@ mainWindowView flags model =
                 ]
             ]
         ]
+
+
+profileModalView : Maybe Token -> Flags -> Model -> H.Html Msg
+profileModalView mToken flags model =
+    H.div
+        [ A.attribute "data-test" "profile-modal"
+        ]
+        []
+
+
+placholderModalView : Maybe Token -> Flags -> Model -> H.Html Msg
+placholderModalView mToken flags model =
+    H.div
+        [ A.attribute "data-test" "placeholder-modal"
+        ]
+        []

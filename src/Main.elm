@@ -269,7 +269,7 @@ view model =
                             |> H.map (LoginMsg >> PageMsg)
 
                     DashboardPage dashboardPage ->
-                        DashboardPage.view model.flags dashboardPage
+                        DashboardPage.view model.token model.flags dashboardPage
                             |> H.map (DashboardMsg >> PageMsg)
 
                     NotFound ->

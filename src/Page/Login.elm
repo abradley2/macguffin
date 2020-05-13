@@ -106,6 +106,12 @@ view flags model =
     H.div [ A.class "login-container" ]
         [ H.div
             []
+            []
+        , H.div
+            []
+            []
+        , H.div
+            []
             [ H.a
                 [ A.href (ghUrl flags)
                 , A.class "button"

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "elm-test",
     "start": "parcel serve ./src/index.html"
   },
   "author": "",
@@ -12,6 +12,7 @@
   "devDependencies": {
     "elm-hot": "^1.1.4",
     "elm-review": "^2.0.0",
+    "elm-test": "^0.19.1-revision2",
     "node-elm-compiler": "^5.0.4",
     "parcel": "^1.12.4"
   }
