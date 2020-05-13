@@ -1,7 +1,7 @@
 module Page.Dashboard exposing (Modal(..), Model, Msg(..), init, update, view)
 
 import ComponentResult exposing (ComponentResult, withCmds, withExternalMsg, withModel)
-import Data.Http exposing (httpErrToString)
+import Data.Http exposing (handlePossibleSessionTimeout, httpErrToString)
 import ExtMsg exposing (ExtMsg(..), Log, Token(..))
 import Flags exposing (Flags)
 import Html as H
@@ -18,6 +18,32 @@ type Modal
     = Profile
     | ContainmentSites
     | Protocols
+
+
+type alias UserProfile =
+    {}
+
+
+decodeUserProfile : D.Decoder UserProfile
+decodeUserProfile =
+    D.succeed UserProfile
+
+
+getUserProfile : Flags -> Token -> Cmd Msg
+getUserProfile flags token =
+    case token of
+        Token token_ ->
+            Http.request
+                { url = Url.Builder.crossOrigin flags.apiUrl [ "profile" ] []
+                , method = "GET"
+                , timeout = Just 2000
+                , expect = Http.expectJson FetchedUserProfile decodeUserProfile
+                , headers =
+                    [ Http.header "Authorization" token_
+                    ]
+                , tracker = Just "getUserProfile"
+                , body = Http.emptyBody
+                }
 
 
 type alias MacguffinItem =
@@ -70,12 +96,14 @@ getMacguffinItems mToken flags =
 
 type alias Model =
     { macguffinItems : WebData (List MacguffinItem)
+    , userProfile : WebData UserProfile
     , modal : Maybe Modal
     }
 
 
 type Msg
     = FetchedMacguffinItems (Result Http.Error (List MacguffinItem))
+    | FetchedUserProfile (Result Http.Error UserProfile)
     | ToggleModal Modal
     | CloseModal
 
@@ -89,9 +117,16 @@ init mToken flags =
     withModel
         { macguffinItems = Loading
         , modal = Nothing
+        , userProfile =
+            mToken
+                |> Maybe.map (\_ -> Loading)
+                |> Maybe.withDefault NotAsked
         }
         |> withCmds
             [ getMacguffinItems mToken flags
+            , mToken
+                |> Maybe.map (getUserProfile flags)
+                |> Maybe.withDefault Cmd.none
             ]
 
 
@@ -106,10 +141,30 @@ update flags msg model =
                 Result.Err httpErr ->
                     withModel model
                         |> withExternalMsg
-                            (LogError
-                                { userMessage = Just "Failed to retrieve agent data"
-                                , logMessage = Just <| httpErrToString httpErr
-                                }
+                            (handlePossibleSessionTimeout httpErr
+                                |> Maybe.withDefault
+                                    (LogError
+                                        { userMessage = Just "Failed to retrieve agent article data"
+                                        , logMessage = Just <| httpErrToString httpErr
+                                        }
+                                    )
+                            )
+
+        FetchedUserProfile httpRes ->
+            case httpRes of
+                Result.Ok userProfile ->
+                    withModel { model | userProfile = Success userProfile }
+
+                Result.Err httpErr ->
+                    withModel model
+                        |> withExternalMsg
+                            (handlePossibleSessionTimeout httpErr
+                                |> Maybe.withDefault
+                                    (LogError
+                                        { userMessage = Just "Failed to retrieve agent profile data"
+                                        , logMessage = Just <| httpErrToString httpErr
+                                        }
+                                    )
                             )
 
         ToggleModal nextModal ->
@@ -195,8 +250,9 @@ modalView title modal =
         , A.class "window"
         ]
         [ H.div [ A.class "window__header" ]
-            [ H.button
-                [ A.class "button window__header__button"
+            [ H.div [] []
+            , H.button
+                [ A.class "window__header__button"
                 , E.onClick CloseModal
                 ]
                 [ H.text "X" ]
@@ -210,7 +266,7 @@ modalView title modal =
 profileModalView : Maybe Token -> Flags -> Model -> H.Html Msg
 profileModalView mToken flags modal =
     H.div
-        [ A.class "window__body" ]
+        [ A.class "window__body dashboard-profilemodal" ]
         [ H.text "Profile modal view" ]
 
 
@@ -219,6 +275,7 @@ containmentSitesModalView mToken flags model =
     H.div
         [ A.class "window__body" ]
         [ H.text "Containment sites modal view" ]
+
 
 protocolsModalView : Maybe Token -> Flags -> Model -> H.Html Msg
 protocolsModalView mToken flags model =

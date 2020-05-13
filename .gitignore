@@ -6,3 +6,4 @@ dist/
 .env
 DESIGN.md
 local-*
+.coverage/

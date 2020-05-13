@@ -5,14 +5,17 @@
   "main": "index.js",
   "scripts": {
     "test": "elm-test",
+    "coverage": "elm-coverage && http-server ./.coverage",
     "start": "parcel serve ./src/index.html"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "elm-coverage": "^0.3.0",
     "elm-hot": "^1.1.4",
     "elm-review": "^2.0.0",
     "elm-test": "^0.19.1-revision2",
+    "http-server": "^0.12.3",
     "node-elm-compiler": "^5.0.4",
     "parcel": "^1.12.4"
   }

@@ -8,8 +8,8 @@
 
 .dashboard-modalcontainer {
   position: absolute;
-  top: 0px;
-  left: 0px;
+  top: 120px;
+  left: calc(50% - 400px);
 }
 
 .dashboard-textarea {
@@ -46,3 +46,6 @@
 
 /* PROFILE MODAL */
 
+.dashboard-profilemodal {
+  width: 360px;
+}
