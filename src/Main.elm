@@ -5,7 +5,6 @@ import Browser.Navigation exposing (Key, load, pushUrl, replaceUrl)
 import ComponentResult exposing (ComponentResult, applyExternalMsg, mapModel, mapMsg, resolve, withCmds, withExternalMsg, withModel)
 import ExtMsg exposing (ExtMsg(..), Log, Token(..))
 import Flags exposing (Flags)
-import Data.Http exposing (httpErrToString)
 import Html as H
 import Html.Attributes as A
 import Html.Events as E

@@ -71,12 +71,6 @@ init flags url =
     in
     withModel {}
         |> withCmds [ loginCmd ]
-        |> withExternalMsg
-            (LogError
-                { userMessage = Just "SOMETHING WENT HORRIBLY WRONG. ABANDON ALL HOPE"
-                , logMessage = Nothing
-                }
-            )
 
 
 update : Msg -> Model -> PageResult
