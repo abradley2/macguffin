@@ -1,6 +1,6 @@
 module Page.Dashboard exposing (Modal(..), Model, Msg(..), init, update, view)
 
-import ComponentResult exposing (ComponentResult, withCmds, withExternalMsg, withModel)
+import ComponentResult exposing (ComponentResult, applyExternalMsg, mapModel, mapMsg, withCmds, withExternalMsg, withModel)
 import Data.Http exposing (handlePossibleSessionTimeout, httpErrToString)
 import ExtMsg exposing (ExtMsg(..), Log, Token(..))
 import Flags exposing (Flags)
@@ -9,13 +9,14 @@ import Html.Attributes as A
 import Html.Events as E
 import Http
 import Json.Decode as D
+import Page.Dashboard.ProfileForm as ProfileForm
 import RemoteData exposing (RemoteData(..), WebData)
 import Url.Builder exposing (crossOrigin, string)
 import View.Folder as Folder
 
 
 type Modal
-    = Profile
+    = Profile ProfileForm.Model
     | ContainmentSites
     | Protocols
 
@@ -29,6 +30,7 @@ type alias UserProfile =
     , wisdom : Int
     , charisma : Int
     }
+
 
 decodeUserProfile : D.Decoder UserProfile
 decodeUserProfile =
@@ -117,6 +119,7 @@ type alias Model =
 type Msg
     = FetchedMacguffinItems (Result Http.Error (List MacguffinItem))
     | FetchedUserProfile (Result Http.Error UserProfile)
+    | ProfileFormMsg ProfileForm.Msg
     | ToggleModal Modal
     | CloseModal
 
@@ -186,14 +189,39 @@ update flags msg model =
         CloseModal ->
             withModel { model | modal = Nothing }
 
+        ProfileFormMsg formMsg ->
+            case model.modal of
+                Just (Profile formModel) ->
+                    ProfileForm.update formMsg formModel
+                        |> mapModel (\form -> { model | modal = Just <| Profile form })
+                        |> mapMsg ProfileFormMsg
+                        |> applyExternalMsg
+                            (\extMsg result ->
+                                case extMsg of
+                                    ProfileForm.Cancel ->
+                                        mapModel (\newModel -> { newModel | modal = Nothing }) result
+
+                                    ProfileForm.Submit _->
+                                        mapModel (\newModel -> { newModel | modal = Nothing }) result
+                            )
+
+                _ ->
+                    withModel model
+                        |> withExternalMsg
+                            (LogError
+                                { userMessage = Nothing
+                                , logMessage = Just "Unhandled profile form message"
+                                }
+                            )
+
 
 view : Maybe Token -> Flags -> Model -> H.Html Msg
 view mToken flags model =
     H.div [ A.class "dashboard-page" ]
         [ H.div [ A.class "dashboard-modalcontainer" ]
             [ case model.modal of
-                Just Profile ->
-                    profileModalView mToken flags model
+                Just (Profile formModel) ->
+                    profileModalView mToken flags model formModel
                         |> modalView "profile-modal"
 
                 Just Protocols ->
@@ -214,7 +242,7 @@ view mToken flags model =
         , mainWindowView flags model
         , H.div
             [ A.class "dashboard-folderrow" ]
-            [ Folder.view [ E.onClick <| ToggleModal Profile ] "Agent Profile"
+            [ Folder.view [ E.onClick <| ToggleModal (Profile ProfileForm.init) ] "Agent Profile"
             , Folder.view [ E.onClick <| ToggleModal ContainmentSites ] "Containment Sites"
             , Folder.view [ E.onClick <| ToggleModal Protocols ] "Protocols"
             ]
@@ -276,11 +304,13 @@ modalView title modal =
         ]
 
 
-profileModalView : Maybe Token -> Flags -> Model -> H.Html Msg
-profileModalView mToken flags modal =
+profileModalView : Maybe Token -> Flags -> Model -> ProfileForm.Model -> H.Html Msg
+profileModalView mToken flags modal formModel =
     H.div
         [ A.class "window__body dashboard-profilemodal" ]
-        [ H.text "Profile modal view" ]
+        [ ProfileForm.view formModel
+            |> H.map ProfileFormMsg
+        ]
 
 
 containmentSitesModalView : Maybe Token -> Flags -> Model -> H.Html Msg

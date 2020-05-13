@@ -83,4 +83,4 @@ update msg model =
 
 view : Model -> H.Html Msg
 view model =
-    H.div [] [ H.text "profile form" ]
+    H.div [] [ H.text "hello, from the profile form" ]
