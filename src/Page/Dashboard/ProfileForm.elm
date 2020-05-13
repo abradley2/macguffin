@@ -27,14 +27,29 @@ type alias Model =
     }
 
 
+currentPoints : Model -> Int
+currentPoints model =
+    model.charisma
+        + model.intelligence
+        + model.wisdom
+        + model.strength
+        + model.dexterity
+        + model.constitution
+
+
+remainingPoints : Model -> Int
+remainingPoints model =
+    (8 * 6) + 27 - currentPoints model
+
+
 init : Model
 init =
-    { charisma = 0
-    , intelligence = 0
-    , wisdom = 0
-    , strength = 0
-    , dexterity = 0
-    , constitution = 0
+    { charisma = 8
+    , intelligence = 8
+    , wisdom = 8
+    , strength = 8
+    , dexterity = 8
+    , constitution = 8
     , bio = ""
     , activeTab = Stats
     }
@@ -93,12 +108,19 @@ statsTabView : Model -> H.Html Msg
 statsTabView model =
     H.div
         []
-        [ rangeSliderView "Charisma" model.charisma CharismaChanged
-        , rangeSliderView "Intelligence" model.intelligence IntelligenceChanged
-        , rangeSliderView "Wisdom" model.wisdom WisdomChanged
-        , rangeSliderView "Strength" model.strength StrengthChanged
-        , rangeSliderView "Dexterity" model.dexterity DexterityChanged
-        , rangeSliderView "Constitution" model.constitution ConstitutionChanged
+        [ H.div
+            []
+            [ H.div [] [ H.text <| "Points remaining: " ++ String.fromInt (remainingPoints model) ]
+            ]
+        , H.div
+            []
+            [ rangeSliderView "Charisma" model.charisma CharismaChanged
+            , rangeSliderView "Intelligence" model.intelligence IntelligenceChanged
+            , rangeSliderView "Wisdom" model.wisdom WisdomChanged
+            , rangeSliderView "Strength" model.strength StrengthChanged
+            , rangeSliderView "Dexterity" model.dexterity DexterityChanged
+            , rangeSliderView "Constitution" model.constitution ConstitutionChanged
+            ]
         ]
 
 
