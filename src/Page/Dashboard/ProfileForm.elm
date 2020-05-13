@@ -83,4 +83,43 @@ update msg model =
 
 view : Model -> H.Html Msg
 view model =
-    H.div [] [ H.text "hello, from the profile form" ]
+    H.div []
+        [ H.div [] []
+        , H.div [] [ statsTabView model ]
+        ]
+
+
+statsTabView : Model -> H.Html Msg
+statsTabView model =
+    H.div
+        []
+        [ rangeSliderView "Charisma" model.charisma CharismaChanged
+        , rangeSliderView "Intelligence" model.intelligence IntelligenceChanged
+        , rangeSliderView "Wisdom" model.wisdom WisdomChanged
+        , rangeSliderView "Strength" model.strength StrengthChanged
+        , rangeSliderView "Dexterity" model.dexterity DexterityChanged
+        , rangeSliderView "Constitution" model.constitution ConstitutionChanged
+        ]
+
+
+rangeSliderView : String -> Int -> (Int -> Msg) -> H.Html Msg
+rangeSliderView title currentValue handler =
+    H.div
+        [ A.class "profilemodal__range"
+        ]
+        [ H.span
+            [ A.class "profilemodal__range__title" ]
+            [ H.text title ]
+        , H.input
+            [ A.type_ "range"
+            , A.class "profilemodal__range__slider"
+            , A.min "0"
+            , A.max "20"
+            , A.value (String.fromInt currentValue)
+            , E.onInput (String.toInt >> Maybe.withDefault -1 >> handler)
+            ]
+            []
+        , H.b
+            [ A.class "profilemodal__range__valuedisplay" ]
+            [ H.text (String.fromInt currentValue) ]
+        ]

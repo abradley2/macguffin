@@ -49,3 +49,25 @@
 .dashboard-profilemodal {
   width: 360px;
 }
+
+.profilemodal__range {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.profilemodal__range__title {
+  display: inline-block;
+  min-width: 130px;
+  flex: 0
+}
+
+.profilemodal__range__valuedisplay {
+  display: inline-block;
+  flex: 1;
+  text-align: center;
+}
+
+.profilemodal__range__slider {
+  flex: 4
+}
