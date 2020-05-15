@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -125,7 +124,7 @@ func createArticle(ctx context.Context, clientToken string, art article) (string
 		return createdID, errors.Wrapf(err, "Could not get collection to create article")
 	}
 
-	insRes, err := c.InsertOne(
+	createdID, err = c.InsertOne(
 		ctx,
 		bson.M{
 			"creator":     user.UserID,
@@ -143,13 +142,6 @@ func createArticle(ctx context.Context, clientToken string, art article) (string
 		return createdID, errors.Wrapf(err, "Failed to insert document into db for user: %s\n%s", user.UserID, art.ItemTitle)
 	}
 
-	switch t := insRes.InsertedID.(type) {
-	case primitive.ObjectID:
-		createdID = t.Hex()
-	default:
-		err = fmt.Errorf("Failed to decode created objectId into hex")
-	}
-
 	return createdID, err
 }
 
@@ -157,8 +149,8 @@ func updateArticle(ctx context.Context) {
 
 }
 
-func articleCollection(artType string) (*mongo.Collection, error) {
-	var c *mongo.Collection
+func articleCollection(artType string) (lib.Collection, error) {
+	var c lib.Collection
 	var collectionName string
 
 	for i := 0; i < len(lib.ArticleCollections); i++ {
@@ -171,7 +163,7 @@ func articleCollection(artType string) (*mongo.Collection, error) {
 		return c, fmt.Errorf("invalid collection name: %s", artType)
 	}
 
-	c = lib.MongoDB.Collection(artType)
+	c = lib.MgDB.Collection(artType)
 
 	if c == nil {
 		return c, fmt.Errorf("failed to load collection with name = %s", artType)

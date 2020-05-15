@@ -4,12 +4,13 @@ import ComponentResult exposing (applyExternalMsg, resolve)
 import Expect
 import ExtMsg exposing (ExtMsg(..), Token(..))
 import Flags exposing (Flags)
+import Html as H
 import Html.Attributes as A
 import Json.Decode as D
 import Json.Encode as E
 import Page.Dashboard as Dashboard exposing (Msg(..), decodeUserProfile)
+import Page.Dashboard.ProfileForm as ProfileForm
 import Test exposing (..)
-import Html as H
 import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -84,7 +85,7 @@ suite =
                             |> Result.map
                                 (Query.find
                                     [ Selector.attribute <|
-                                        A.attribute "data-test-Strength" (String.fromInt defaultStrength)
+                                        A.attribute "data-test-range" "Strength"
                                     ]
                                 )
                             |> Result.map (Query.contains [ H.text <| String.fromInt defaultStrength ])
@@ -92,5 +93,24 @@ suite =
 
                     Result.Err err ->
                         Expect.fail (D.errorToString err)
+            )
+        , test "All sliders should effect their respective state"
+            (\_ ->
+                ProfileForm.init
+                    |> ProfileForm.view
+                    |> Query.fromHtml
+                    |> Query.find
+                        [ Selector.attribute <|
+                            A.attribute "data-test-range" "Strength"
+                        ]
+                    |> Query.find
+                        [ Selector.tag "range"
+                        ]
+                    |> Event.simulate (Event.input "100")
+                    |> Event.toResult
+                    |> Result.map (\msg -> ProfileForm.update msg ProfileForm.init)
+                    |> Result.map getModel
+                    |> Result.map (\model -> Expect.equal model.strength 100)
+                    |> Result.withDefault (Expect.fail "Did not fire event")
             )
         ]

@@ -36,7 +36,7 @@ func getUserProfileJSON(ctx context.Context, userData token.UserData) ([]byte, e
 		Charisma:     8,
 	}
 
-	c := lib.MongoDB.Collection(lib.ProfileCollection)
+	c := lib.MgDB.Collection(lib.ProfileCollection)
 
 	q := bson.M{
 		"userID": bson.M{

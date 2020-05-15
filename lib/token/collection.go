@@ -53,7 +53,7 @@ func storeToken(
 		"createdAt":   primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	tc := lib.MongoDB.Collection(lib.TokensCollection, nil)
+	tc := lib.MgDB.Collection(lib.TokensCollection)
 
 	_, err = tc.InsertOne(ctx, doc, &options.InsertOneOptions{})
 
@@ -67,7 +67,7 @@ func storeToken(
 }
 
 func checkUser(ctx context.Context, userID string, retry bool) error {
-	agents := lib.MongoDB.Collection(lib.AgentsCollection)
+	agents := lib.MgDB.Collection(lib.AgentsCollection)
 
 	f := bson.M{
 		"userID": bson.M{
@@ -96,7 +96,7 @@ func createUser(ctx context.Context, userID string) error {
 		"initialized": false,
 	}
 
-	agents := lib.MongoDB.Collection(lib.AgentsCollection)
+	agents := lib.MgDB.Collection(lib.AgentsCollection)
 
 	_, err := agents.InsertOne(ctx, u, &options.InsertOneOptions{})
 
@@ -123,7 +123,7 @@ func GetLoggedInUser(ctx context.Context, clientToken string) (UserData, error) 
 		err          error
 	)
 
-	tokens := lib.MongoDB.Collection(lib.TokensCollection)
+	tokens := lib.MgDB.Collection(lib.TokensCollection)
 
 	tokensRes := tokens.FindOne(
 		ctx,
@@ -147,7 +147,7 @@ func GetLoggedInUser(ctx context.Context, clientToken string) (UserData, error) 
 		return loggedInUser, errors.Wrap(err, "Failed to decode token document from db")
 	}
 
-	agents := lib.MongoDB.Collection(lib.AgentsCollection)
+	agents := lib.MgDB.Collection(lib.AgentsCollection)
 
 	userRes := agents.FindOne(
 		ctx,

@@ -128,6 +128,7 @@ rangeSliderView : String -> Int -> (Int -> Msg) -> H.Html Msg
 rangeSliderView title currentValue handler =
     H.div
         [ A.class "profilemodal__range"
+        , A.attribute "data-test-range" title
         ]
         [ H.span
             [ A.class "profilemodal__range__title" ]
@@ -143,7 +144,6 @@ rangeSliderView title currentValue handler =
             []
         , H.b
             [ A.class "profilemodal__range__valuedisplay"
-            , A.attribute ("data-test-" ++ title) (String.fromInt currentValue)
             ]
             [ H.text (String.fromInt currentValue) ]
         ]
