@@ -9,13 +9,17 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/abradley2/macguffin/lib/database"
 	"github.com/abradley2/macguffin/lib/token"
 	"github.com/pkg/errors"
 )
 
 // GetArticleListParams _
 type GetArticleListParams struct {
-	Logger *log.Logger
+	Logger            *log.Logger
+	TokensCollection  database.Collection
+	ArticleCollection database.Collection
+	UsersCollection   database.Collection
 
 	// artType: query.type - required
 	// can be macguffins, sites, or events
@@ -33,7 +37,7 @@ type GetArticleListParams struct {
 }
 
 // FromRequest create GetArticleListParams from an http.Request
-func (params *GetArticleListParams) FromRequest(r *http.Request) error {
+func (params *GetArticleListParams) FromRequest(r *http.Request, db database.Database) error {
 	var err error
 	q := r.URL.Query()
 	params.artType = q.Get("type")
@@ -42,7 +46,12 @@ func (params *GetArticleListParams) FromRequest(r *http.Request) error {
 
 	if params.artType == "" {
 		err = fmt.Errorf("Missing required parameter query.type")
+		return err
 	}
+
+	articles, err := getArticleCollection(params.artType, db)
+
+	params.ArticleCollection = articles
 
 	return err
 }
@@ -53,7 +62,14 @@ func HandleGetArticleList(ctx context.Context, w http.ResponseWriter, params Get
 
 	var userID string
 	if params.clientToken != "" {
-		userData, err := token.GetLoggedInUser(ctx, params.clientToken)
+		userData, err := token.GetLoggedInUser(
+			ctx,
+			params.clientToken,
+			token.GetLoggedInUserParams{
+				Tokens: params.TokensCollection,
+				Users:  params.UsersCollection,
+			},
+		)
 
 		if err != nil {
 			logger.Printf("Error retrieving token: %v", err)
@@ -65,11 +81,14 @@ func HandleGetArticleList(ctx context.Context, w http.ResponseWriter, params Get
 		userID = userData.UserID
 	}
 
-	js, err := getArticlesJSON(ctx, getArticlesJSONOptions{
-		articleType: params.artType,
-		creator:     params.creator,
-		userID:      userID,
-	})
+	js, err := getArticlesJSON(
+		ctx,
+		params.ArticleCollection,
+		getArticlesJSONOptions{
+			articleType: params.artType,
+			creator:     params.creator,
+			userID:      userID,
+		})
 
 	if err != nil {
 		logger.Printf("Failed reading articles from db via getArticlesJSON: %v", err)
@@ -91,7 +110,9 @@ type createArticleBody struct {
 
 // CreateArticleParams _
 type CreateArticleParams struct {
-	Logger *log.Logger
+	Logger            *log.Logger
+	TokensCollection  database.Collection
+	ArticleCollection database.Collection
 
 	// clientToken: headers.Authorization - optional
 	// token of the user who is creating the article
@@ -103,7 +124,7 @@ type CreateArticleParams struct {
 }
 
 // FromRequest get CreateArticleParams from an http.Request
-func (params *CreateArticleParams) FromRequest(r *http.Request) error {
+func (params *CreateArticleParams) FromRequest(r *http.Request, db database.Database) error {
 	params.clientToken = r.Header.Get("Authorization")
 
 	if params.clientToken == "" {
@@ -116,7 +137,17 @@ func (params *CreateArticleParams) FromRequest(r *http.Request) error {
 		return errors.Wrap(err, "Could not read request body")
 	}
 
-	return json.Unmarshal(bodyContent, &params.body)
+	err = json.Unmarshal(bodyContent, &params.body)
+
+	if err != nil {
+		return err
+	}
+
+	articles, err := getArticleCollection(params.body.ArticleType, db)
+
+	params.ArticleCollection = articles
+
+	return err
 }
 
 // HandleCreateArticle creates a new article and adds it to the db
@@ -132,7 +163,15 @@ func HandleCreateArticle(ctx context.Context, w http.ResponseWriter, params Crea
 		Thumbnail:   body.Thumbnail,
 	}
 
-	createdID, err := createArticle(ctx, params.clientToken, reqBodyArticle)
+	createdID, err := createArticle(
+		ctx,
+		params.clientToken,
+		reqBodyArticle,
+		createArticleParams{
+			tokens:   params.TokensCollection,
+			articles: params.ArticleCollection,
+		},
+	)
 
 	if err != nil {
 		logger.Printf("Error calling createArticle: %v", err)

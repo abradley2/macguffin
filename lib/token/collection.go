@@ -5,10 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/abradley2/macguffin/lib"
+	"github.com/abradley2/macguffin/lib/database"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,14 +25,23 @@ type UserData struct {
 	UserID string `json:"userID"`
 }
 
+type storeTokenParams struct {
+	tokensCollection database.Collection
+	agentsCollection database.Collection
+}
+
 func storeToken(
 	ctx context.Context,
 	ghUserRes githubAccessTokenResponse,
 	userID string,
-	logger *log.Logger,
+	params storeTokenParams,
 ) (string, error) {
-	var token string
-	var err error
+	var (
+		tokensCollection = params.tokensCollection
+		agentsCollection = params.agentsCollection
+		token            string
+		err              error
+	)
 
 	h := sha256.New()
 	h.Write(
@@ -44,8 +52,6 @@ func storeToken(
 
 	token = base64.StdEncoding.EncodeToString(h.Sum(nil))
 
-	logger.Printf("Storing token for user: %s", userID)
-
 	doc := bson.M{
 		"userID":      userID,
 		"accessToken": ghUserRes.AccessToken,
@@ -53,22 +59,18 @@ func storeToken(
 		"createdAt":   primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	tc := lib.MgDB.Collection(lib.TokensCollection)
-
-	_, err = tc.InsertOne(ctx, doc, &options.InsertOneOptions{})
+	_, err = tokensCollection.InsertOne(ctx, doc, &options.InsertOneOptions{})
 
 	if err != nil {
 		return "", errors.Wrap(err, "Could not insert user document into tokens collection")
 	}
 
-	checkUser(ctx, userID, false)
+	checkUser(ctx, agentsCollection, userID, false)
 
 	return token, err
 }
 
-func checkUser(ctx context.Context, userID string, retry bool) error {
-	agents := lib.MgDB.Collection(lib.AgentsCollection)
-
+func checkUser(ctx context.Context, agents database.Collection, userID string, retry bool) error {
 	f := bson.M{
 		"userID": bson.M{
 			"$eq": userID,
@@ -78,25 +80,23 @@ func checkUser(ctx context.Context, userID string, retry bool) error {
 	res := agents.FindOne(ctx, f, &options.FindOneOptions{})
 
 	if res.Err() == mongo.ErrNoDocuments && retry == false {
-		err := createUser(ctx, userID)
+		err := createUser(ctx, userID, agents)
 
 		if err != nil {
 			return err
 		}
 
-		checkUser(ctx, userID, true)
+		checkUser(ctx, agents, userID, true)
 	}
 
 	return nil
 }
 
-func createUser(ctx context.Context, userID string) error {
+func createUser(ctx context.Context, userID string, agents database.Collection) error {
 	u := bson.M{
 		"userID":      userID,
 		"initialized": false,
 	}
-
-	agents := lib.MgDB.Collection(lib.AgentsCollection)
 
 	_, err := agents.InsertOne(ctx, u, &options.InsertOneOptions{})
 
@@ -117,13 +117,22 @@ func (errTokenExpired) Error() string {
 // ErrTokenExpired indicates an expired token
 var ErrTokenExpired errTokenExpired
 
-func GetLoggedInUser(ctx context.Context, clientToken string) (UserData, error) {
+type GetLoggedInUserParams struct {
+	Tokens database.Collection
+	Users  database.Collection
+}
+
+func GetLoggedInUser(
+	ctx context.Context,
+	clientToken string,
+	params GetLoggedInUserParams,
+) (UserData, error) {
 	var (
 		loggedInUser UserData
 		err          error
+		tokens       = params.Tokens
+		users        = params.Users
 	)
-
-	tokens := lib.MgDB.Collection(lib.TokensCollection)
 
 	tokensRes := tokens.FindOne(
 		ctx,
@@ -147,9 +156,7 @@ func GetLoggedInUser(ctx context.Context, clientToken string) (UserData, error) 
 		return loggedInUser, errors.Wrap(err, "Failed to decode token document from db")
 	}
 
-	agents := lib.MgDB.Collection(lib.AgentsCollection)
-
-	userRes := agents.FindOne(
+	userRes := users.FindOne(
 		ctx,
 		bson.M{
 			"userID": bson.M{

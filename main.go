@@ -10,9 +10,11 @@ import (
 	"os"
 
 	"github.com/abradley2/macguffin/lib/articles"
+	"github.com/abradley2/macguffin/lib/database"
 	"github.com/abradley2/macguffin/lib/profile"
 	"github.com/abradley2/macguffin/lib/request"
 	"github.com/abradley2/macguffin/lib/token"
+	"github.com/pkg/errors"
 	"github.com/rs/cors"
 )
 
@@ -41,7 +43,7 @@ func setupRoute(mux *http.ServeMux, method string, url string, h handler) {
 	})
 }
 
-func (s server) initRoutes() {
+func (s server) initRoutes(db database.Database) {
 	mux := s.multiplexer
 
 	mux.HandleFunc("/", index)
@@ -50,7 +52,12 @@ func (s server) initRoutes() {
 	setupRoute(mux, http.MethodGet, "/profile", func(w http.ResponseWriter, r *http.Request) {
 		logger := request.NewLogger()
 
-		params := profile.GetProfileParams{Logger: logger}
+		params := profile.GetProfileParams{
+			Logger:            logger,
+			ProfileCollection: db.Collection(database.ProfileCollection),
+			TokensCollection:  db.Collection(database.TokensCollection),
+			UsersCollection:   db.Collection(database.AgentsCollection),
+		}
 		err := params.FromRequest(r)
 
 		if err != nil {
@@ -66,7 +73,11 @@ func (s server) initRoutes() {
 	setupRoute(mux, http.MethodPost, "/token", func(w http.ResponseWriter, r *http.Request) {
 		logger := request.NewLogger()
 
-		params := token.GetTokenParams{Logger: logger}
+		params := token.GetTokenParams{
+			Logger:          logger,
+			TokenCollection: db.Collection(database.TokensCollection),
+			UserCollection:  db.Collection(database.AgentsCollection),
+		}
 		err := params.FromRequest(r)
 
 		if err != nil {
@@ -82,8 +93,12 @@ func (s server) initRoutes() {
 	setupRoute(mux, http.MethodGet, "/articles", func(w http.ResponseWriter, r *http.Request) {
 		logger := request.NewLogger()
 
-		params := articles.GetArticleListParams{Logger: logger}
-		err := params.FromRequest(r)
+		params := articles.GetArticleListParams{
+			Logger:           logger,
+			TokensCollection: db.Collection(database.TokensCollection),
+			UsersCollection:  db.Collection(database.AgentsCollection),
+		}
+		err := params.FromRequest(r, db)
 
 		if err != nil {
 			logger.Printf("Failed to initialize params from request for /articles\n%v", err)
@@ -98,8 +113,11 @@ func (s server) initRoutes() {
 	setupRoute(mux, http.MethodPost, "/create-article", func(w http.ResponseWriter, r *http.Request) {
 		logger := request.NewLogger()
 
-		params := articles.CreateArticleParams{Logger: logger}
-		err := params.FromRequest(r)
+		params := articles.CreateArticleParams{
+			Logger:           logger,
+			TokensCollection: db.Collection(database.TokensCollection),
+		}
+		err := params.FromRequest(r, db)
 
 		if err != nil {
 			logger.Printf("Failed to initialize params from request for /create-article\n%v", err)
@@ -122,6 +140,12 @@ func main() {
 }
 
 func run() error {
+	db, err := database.OpenDatabase()
+
+	if err != nil {
+		return errors.Wrap(err, "main.go run function failed in calling OpenDatabase")
+	}
+
 	mux := http.NewServeMux()
 	s := server{mux}
 
@@ -131,7 +155,7 @@ func run() error {
 		AllowCredentials: true,
 	})
 
-	s.initRoutes()
+	s.initRoutes(db)
 
 	return http.ListenAndServe(":8080", c.Handler(s))
 }

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/abradley2/macguffin/lib/database"
 	"github.com/pkg/errors"
 )
 
@@ -18,7 +19,9 @@ type getTokenBody struct {
 
 // GetTokenParams _
 type GetTokenParams struct {
-	Logger *log.Logger
+	Logger          *log.Logger
+	TokenCollection database.Collection
+	UserCollection  database.Collection
 
 	// body - required
 	// simple json body with a "code" field for github oauth
@@ -75,7 +78,15 @@ func HandleGetToken(ctx context.Context, w http.ResponseWriter, params GetTokenP
 		return
 
 	default:
-		accessToken, err := storeToken(ctx, tokenRes, user, logger)
+		accessToken, err := storeToken(
+			ctx,
+			tokenRes,
+			user,
+			storeTokenParams{
+				tokensCollection: params.TokenCollection,
+				agentsCollection: params.UserCollection,
+			},
+		)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

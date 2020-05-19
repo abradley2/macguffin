@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/abradley2/macguffin/lib"
+	"github.com/abradley2/macguffin/lib/database"
 	"github.com/abradley2/macguffin/lib/token"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -62,21 +62,18 @@ func (opts getArticlesJSONOptions) toQuery(userID string) (bson.M, error) {
 	return q, err
 }
 
-func getArticlesJSON(ctx context.Context, opts getArticlesJSONOptions) ([]byte, error) {
+func getArticlesJSON(
+	ctx context.Context,
+	articles database.Collection,
+	opts getArticlesJSONOptions,
+) ([]byte, error) {
 	var (
-		js      []byte
-		err     error
-		artType = opts.articleType
+		js  []byte
+		err error
 	)
 
 	dlCtx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Second))
 	defer cancel()
-
-	c, err := articleCollection(artType)
-
-	if err != nil {
-		return js, errors.Wrapf(err, "Could not get collection containing articles")
-	}
 
 	findQuery, err := opts.toQuery(opts.userID)
 
@@ -84,7 +81,7 @@ func getArticlesJSON(ctx context.Context, opts getArticlesJSONOptions) ([]byte, 
 		return js, errors.Wrapf(err, "Could not generate query from getArticlesJSONOptions")
 	}
 
-	res, err := c.Find(
+	res, err := articles.Find(
 		dlCtx,
 		findQuery,
 		&options.FindOptions{
@@ -108,23 +105,35 @@ func getArticlesJSON(ctx context.Context, opts getArticlesJSONOptions) ([]byte, 
 	return json.Marshal(artList)
 }
 
-func createArticle(ctx context.Context, clientToken string, art article) (string, error) {
+type createArticleParams struct {
+	tokens   database.Collection
+	articles database.Collection
+	users    database.Collection
+}
+
+func createArticle(
+	ctx context.Context,
+	clientToken string,
+	art article,
+	params createArticleParams,
+) (string, error) {
 	var err error
 	var createdID string
 
-	user, err := token.GetLoggedInUser(ctx, clientToken)
+	user, err := token.GetLoggedInUser(
+		ctx,
+		clientToken,
+		token.GetLoggedInUserParams{
+			Tokens: params.tokens,
+			Users:  params.users,
+		},
+	)
 
 	if err != nil {
 		return createdID, errors.Wrap(err, "Failed to get logged in user")
 	}
 
-	c, err := articleCollection(art.ArticleType)
-
-	if err != nil {
-		return createdID, errors.Wrapf(err, "Could not get collection to create article")
-	}
-
-	createdID, err = c.InsertOne(
+	createdID, err = params.articles.InsertOne(
 		ctx,
 		bson.M{
 			"creator":     user.UserID,
@@ -149,13 +158,16 @@ func updateArticle(ctx context.Context) {
 
 }
 
-func articleCollection(artType string) (lib.Collection, error) {
-	var c lib.Collection
+func getArticleCollection(
+	artType string,
+	db database.Database,
+) (database.Collection, error) {
+	var c database.Collection
 	var collectionName string
 
-	for i := 0; i < len(lib.ArticleCollections); i++ {
-		if lib.ArticleCollections[i] == artType {
-			collectionName = lib.ArticleCollections[i]
+	for i := 0; i < len(database.ArticleCollections); i++ {
+		if database.ArticleCollections[i] == artType {
+			collectionName = database.ArticleCollections[i]
 		}
 	}
 
@@ -163,7 +175,7 @@ func articleCollection(artType string) (lib.Collection, error) {
 		return c, fmt.Errorf("invalid collection name: %s", artType)
 	}
 
-	c = lib.MgDB.Collection(artType)
+	c = db.Collection(artType)
 
 	if c == nil {
 		return c, fmt.Errorf("failed to load collection with name = %s", artType)

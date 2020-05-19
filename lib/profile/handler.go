@@ -6,12 +6,17 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/abradley2/macguffin/lib/database"
 	"github.com/abradley2/macguffin/lib/token"
 )
 
 // GetProfileParams _
 type GetProfileParams struct {
-	Logger *log.Logger
+	Logger            *log.Logger
+	ProfileCollection database.Collection
+	TokensCollection  database.Collection
+	UsersCollection   database.Collection
+
 	// clientToken: Header.Authorization - required
 	clientToken string
 }
@@ -33,7 +38,14 @@ func (params *GetProfileParams) FromRequest(r *http.Request) error {
 func HandleGetProfile(ctx context.Context, w http.ResponseWriter, params GetProfileParams) {
 	logger := params.Logger
 
-	userData, err := token.GetLoggedInUser(ctx, params.clientToken)
+	userData, err := token.GetLoggedInUser(
+		ctx,
+		params.clientToken,
+		token.GetLoggedInUserParams{
+			Tokens: params.TokensCollection,
+			Users:  params.UsersCollection,
+		},
+	)
 
 	if err != nil {
 		if err == token.ErrTokenExpired {
@@ -47,7 +59,7 @@ func HandleGetProfile(ctx context.Context, w http.ResponseWriter, params GetProf
 		return
 	}
 
-	usrJSON, err := getUserProfileJSON(ctx, userData)
+	usrJSON, err := getUserProfileJSON(ctx, params.ProfileCollection, userData)
 
 	if err != nil {
 		logger.Printf("Could not get user profile from logged in user: %v", err)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/abradley2/macguffin/lib"
+	"github.com/abradley2/macguffin/lib/database"
 	"github.com/abradley2/macguffin/lib/token"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,7 +23,11 @@ type userProfile struct {
 	Charisma      int    `json:"charisma" bson:"charisma"`
 }
 
-func getUserProfileJSON(ctx context.Context, userData token.UserData) ([]byte, error) {
+func getUserProfileJSON(
+	ctx context.Context,
+	profiles database.Collection,
+	userData token.UserData,
+) ([]byte, error) {
 	var js []byte
 	var err error
 	var profile = userProfile{
@@ -36,15 +40,13 @@ func getUserProfileJSON(ctx context.Context, userData token.UserData) ([]byte, e
 		Charisma:     8,
 	}
 
-	c := lib.MgDB.Collection(lib.ProfileCollection)
-
 	q := bson.M{
 		"userID": bson.M{
 			"$eq": userData.UserID,
 		},
 	}
 
-	res := c.FindOne(ctx, q, &options.FindOneOptions{})
+	res := profiles.FindOne(ctx, q, &options.FindOneOptions{})
 
 	err = res.Err()
 
