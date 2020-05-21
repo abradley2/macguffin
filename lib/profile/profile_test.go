@@ -1,48 +1,91 @@
 package profile
 
 import (
+	"context"
 	"encoding/json"
+	"io/ioutil"
+	"log"
+	"os"
 	"testing"
+
+	"net/http/httptest"
 
 	"github.com/abradley2/macguffin/lib/database"
 	"github.com/abradley2/macguffin/lib/token"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestGetArticles(t *testing.T) {
-	tokens := &database.TestCollection{}
-	users := &database.TestCollection{}
+	tokenCollection := &database.TestCollection{}
+	userCollection := &database.TestCollection{}
+	profileCollection := &database.TestCollection{}
 
-	var testRequestToken = "test-request-token"
-	var testUserID = "test-user-id"
-	var testPublicAgentID = "test-public-agent-id"
+	const testUserStrength = 10
+	const testRequestToken = "test-request-token"
+	const testUserID = "test-user-id"
+	const testPublicAgentID = "test-public-agent-id"
 
-	userProfJSON, _ := json.Marshal(userProfile{
-		UserID: testUserID,
-		PublicAgentID: testPublicAgentID,
-	})
-
-	users.HashQuery(
-		bson.M{
-			"userID": bson.M{
-				"$eq": testUserID,
-			},
-		},
-		userProfJSON,
-	)
-
-	userTokenJSON, _ := json.Marshal(token.UserTokenData{
-		UserID: testUserID,
+	tokenJSON, _ := json.Marshal(token.UserTokenData{
+		UserID:      testUserID,
 		ClientToken: testRequestToken,
 	})
 
-	tokens.HashQuery((
+	tokenCollection.HashQuery(
 		bson.M{
 			"clientToken": bson.M{
 				"$eq": testRequestToken,
 			},
 		},
-		useruserTokenJSON,
-	))
+		tokenJSON,
+	)
 
+	userJSON, _ := json.Marshal(token.UserData{
+		UserID: testUserID,
+	})
 
+	userCollection.HashQuery(
+		bson.M{
+			"userID": bson.M{
+				"$eq": testUserID,
+			},
+		},
+		userJSON,
+	)
+
+	profileJSON, _ := json.Marshal(userProfile{
+		UserID:        testUserID,
+		PublicAgentID: testPublicAgentID,
+		Strength:      testUserStrength,
+	})
+
+	profileCollection.HashQuery(
+		bson.M{
+			"userID": bson.M{
+				"$eq": testUserID,
+			},
+		},
+		profileJSON,
+	)
+
+	w := httptest.NewRecorder()
+	p := GetProfileParams{
+		Logger:            log.New(os.Stderr, "", log.LstdFlags),
+		clientToken:       testRequestToken,
+		ProfileCollection: profileCollection,
+		TokensCollection:  tokenCollection,
+		UsersCollection:   userCollection,
+	}
+	HandleGetProfile(context.Background(), w, p)
+
+	b, _ := ioutil.ReadAll(w.Body)
+	prof := userProfile{}
+	err := json.Unmarshal(b, &prof)
+
+	if err != nil {
+		t.Errorf("Could not unmarshal response json: %v", err)
+	}
+
+	if prof.Strength != testUserStrength {
+		t.Errorf("Expected %d user strength but got %d", testUserStrength, prof.Strength)
+	}
 }

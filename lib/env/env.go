@@ -26,7 +26,8 @@ func init() {
 	wd, err := os.Getwd()
 
 	if err != nil {
-		logger.Fatalf("Coud not get working directory: %v", err)
+		logger.Printf("Coud not get working directory: %v", err)
+		return
 	}
 
 	p := path.Join(
@@ -39,13 +40,15 @@ func init() {
 	defer f.Close()
 
 	if err != nil {
-		logger.Fatalf("Could not open .env file from env package: %v", err)
+		logger.Printf("Could not open .env file from env package: %v", err)
+		return
 	}
 
 	b, err := ioutil.ReadAll(f)
 
 	if err != nil {
-		logger.Fatalf("Could not read .env file from env package: %v", err)
+		logger.Printf("Could not read .env file from env package: %v", err)
+		return
 	}
 
 	envLines := strings.Split(string(b), "\n")
@@ -75,4 +78,13 @@ func checkVar(envMap map[string]string, varName string) string {
 		logger.Fatalf("Failed to find environment variable: %s", varName)
 	}
 	return v
+}
+
+func isInTests() bool {
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "-test.v=") {
+			return true
+		}
+	}
+	return false
 }

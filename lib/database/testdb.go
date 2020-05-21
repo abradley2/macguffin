@@ -44,6 +44,9 @@ func (c *TestCollection) HashQuery(q interface{}, doc []byte) {
 		panic(err)
 	}
 
+	if c.queries == nil {
+		c.queries = make(map[string]*[]byte)
+	}
 	c.queries[h] = &doc
 }
 
