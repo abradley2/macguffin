@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func TestGetArticles(t *testing.T) {
+func TestGetProfile(t *testing.T) {
 	tokenCollection := &database.TestCollection{}
 	userCollection := &database.TestCollection{}
 	profileCollection := &database.TestCollection{}
