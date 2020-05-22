@@ -97,7 +97,7 @@ suite =
         , test "All sliders should effect their respective state"
             (\_ ->
                 ProfileForm.init
-                    |> ProfileForm.view
+                    |> ProfileForm.view Nothing
                     |> Query.fromHtml
                     |> Query.find
                         [ Selector.attribute <|
@@ -112,5 +112,17 @@ suite =
                     |> Result.map getModel
                     |> Result.map (\model -> Expect.equal model.strength 100)
                     |> Result.withDefault (Expect.fail "Did not fire event")
+            )
+        , test "Should block the form if we already have an initialized agent"
+            (\_ ->
+                ProfileForm.init
+                    |> ProfileForm.view (Just "Agent Tony")
+                    |> Query.fromHtml
+                    |> Query.findAll
+                        [ Selector.attribute <|
+                            A.attribute "data-test" "profile-form-blocker"
+                        ]
+                    |> Query.count (Expect.equal 1)
+
             )
         ]

@@ -335,10 +335,15 @@ modalView title modal =
 
 
 profileModalView : Maybe Token -> Flags -> Model -> ProfileForm.Model -> H.Html Msg
-profileModalView mToken flags modal formModel =
+profileModalView mToken flags model formModel =
+    let
+        mPublicAgentID = model.userProfile
+            |> RemoteData.toMaybe
+            |> Maybe.andThen .publicAgentID
+    in
     H.div
         [ A.class "window__body dashboard-profilemodal" ]
-        [ ProfileForm.view formModel
+        [ ProfileForm.view mPublicAgentID formModel
             |> H.map ProfileFormMsg
         ]
 

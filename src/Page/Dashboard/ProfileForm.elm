@@ -96,8 +96,8 @@ update msg model =
                 |> withExternalMsg (Submit model)
 
 
-view : Model -> H.Html Msg
-view model =
+view : Maybe String -> Model -> H.Html Msg
+view mAgentID model =
     H.div []
         [ H.div [] []
         , H.div [] [ statsTabView model ]
