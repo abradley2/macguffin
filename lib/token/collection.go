@@ -65,7 +65,7 @@ func storeToken(
 		return "", errors.Wrap(err, "Could not insert user document into tokens collection")
 	}
 
-	checkUser(ctx, agentsCollection, userID, false)
+	err = checkUser(ctx, agentsCollection, userID, false)
 
 	return token, err
 }
@@ -89,7 +89,7 @@ func checkUser(ctx context.Context, agents database.Collection, userID string, r
 		checkUser(ctx, agents, userID, true)
 	}
 
-	return nil
+	return res.Err()
 }
 
 func createUser(ctx context.Context, userID string, agents database.Collection) error {

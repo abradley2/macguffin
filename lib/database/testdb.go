@@ -6,6 +6,7 @@ import (
 
 	"github.com/lucsky/cuid"
 	"github.com/spaolacci/murmur3"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -33,8 +34,9 @@ func (db *TestDatabase) Collection(collectionName string) Collection {
 }
 
 type TestCollection struct {
-	name    string
-	queries map[string]*[]byte
+	name       string
+	LastInsert []byte
+	queries    map[string]*[]byte
 }
 
 func (c *TestCollection) HashQuery(q interface{}, doc []byte) {
@@ -53,6 +55,10 @@ func (c *TestCollection) HashQuery(q interface{}, doc []byte) {
 func (c *TestCollection) InsertOne(ctx context.Context, q interface{}, opts *options.InsertOneOptions) (string, error) {
 	var s string = cuid.New()
 	var err error
+
+	js, err := json.Marshal(q)
+
+	c.LastInsert = js
 
 	return s, err
 }
@@ -86,6 +92,10 @@ func (c *TestCollection) FindOne(ctx context.Context, q interface{}, opts *optio
 	h.Write(j)
 
 	colBytes := c.queries[string(h.Sum(nil))]
+
+	if colBytes == nil {
+		err = mongo.ErrNoDocuments
+	}
 
 	return &TestSingleResult{
 		err:         err,
