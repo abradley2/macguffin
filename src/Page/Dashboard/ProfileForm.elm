@@ -99,7 +99,17 @@ update msg model =
 view : Maybe String -> Model -> H.Html Msg
 view mAgentID model =
     H.div []
-        [ H.div [] []
+        [ case mAgentID of
+            Just initializedAgentID ->
+                H.div
+                    [ A.attribute "data-test" "profile-form-blocker"
+                    ]
+                    []
+
+            Nothing ->
+                H.div
+                    []
+                    []
         , H.div [] [ statsTabView model ]
         ]
 

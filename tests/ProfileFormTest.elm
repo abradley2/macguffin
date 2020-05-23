@@ -94,25 +94,18 @@ suite =
                     Result.Err err ->
                         Expect.fail (D.errorToString err)
             )
-        , test "All sliders should effect their respective state"
-            (\_ ->
-                ProfileForm.init
-                    |> ProfileForm.view Nothing
-                    |> Query.fromHtml
-                    |> Query.find
-                        [ Selector.attribute <|
-                            A.attribute "data-test-range" "Strength"
-                        ]
-                    |> Query.find
-                        [ Selector.tag "range"
-                        ]
-                    |> Event.simulate (Event.input "100")
-                    |> Event.toResult
-                    |> Result.map (\msg -> ProfileForm.update msg ProfileForm.init)
-                    |> Result.map getModel
-                    |> Result.map (\model -> Expect.equal model.strength 100)
-                    |> Result.withDefault (Expect.fail "Did not fire event")
-            )
+        , test "Strength slider should work"
+            (\_ -> testSlider "Strength" 100 .strength)
+        , test "Dexterity slider should work"
+            (\_ -> testSlider "Dexterity" 100 .dexterity)
+        , test "Constitution slider should work"
+            (\_ -> testSlider "Constitution" 100 .constitution)
+        , test "Wisdom slider should work"
+            (\_ -> testSlider "Wisdom" 100 .wisdom)
+        , test "Intelligence slider should work"
+            (\_ -> testSlider "Intelligence" 100 .intelligence)
+        , test "Charisma slider should work"
+            (\_ -> testSlider "Charisma" 100 .charisma)
         , test "Should block the form if we already have an initialized agent"
             (\_ ->
                 ProfileForm.init
@@ -123,6 +116,26 @@ suite =
                             A.attribute "data-test" "profile-form-blocker"
                         ]
                     |> Query.count (Expect.equal 1)
-
             )
         ]
+
+
+testSlider : String -> Int -> (ProfileForm.Model -> Int) -> Expect.Expectation
+testSlider dataTag value getter =
+    ProfileForm.init
+        |> ProfileForm.view Nothing
+        |> Query.fromHtml
+        |> Query.find
+            [ Selector.attribute <|
+                A.attribute "data-test-range" dataTag
+            ]
+        |> Query.find
+            [ Selector.tag "input"
+            ]
+        |> Event.simulate
+            (Event.input <| String.fromInt value)
+        |> Event.toResult
+        |> Result.map (\msg -> ProfileForm.update msg ProfileForm.init)
+        |> Result.map getModel
+        |> Result.map (\model -> Expect.equal (getter model) value)
+        |> Result.withDefault (Expect.fail "Did not fire event")
