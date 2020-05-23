@@ -98,11 +98,14 @@ update msg model =
 
 view : Maybe String -> Model -> H.Html Msg
 view mAgentID model =
-    H.div []
+    H.div
+        [ A.class "dashboard-profileform"
+        ]
         [ case mAgentID of
             Just initializedAgentID ->
                 H.div
                     [ A.attribute "data-test" "profile-form-blocker"
+                    , A.class "profileform__blocker"
                     ]
                     []
 
@@ -110,8 +113,20 @@ view mAgentID model =
                 H.div
                     []
                     []
-        , H.div [] [ statsTabView model ]
+        , H.div []
+            [ case model.activeTab of
+                Stats ->
+                    statsTabView model
+
+                Bio ->
+                    bioTabView model
+            ]
         ]
+
+
+bioTabView : Model -> H.Html Msg
+bioTabView model =
+    H.div [] []
 
 
 statsTabView : Model -> H.Html Msg

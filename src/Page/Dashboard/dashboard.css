@@ -72,3 +72,16 @@
 .profilemodal__range__slider {
   flex: 4
 }
+
+.dashboard-profileform {
+  position: relative;
+}
+
+.profileform__blocker {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  cursor: not-allowed;
+}

@@ -113,6 +113,7 @@ type CreateArticleParams struct {
 	Logger            *log.Logger
 	TokensCollection  database.Collection
 	ArticleCollection database.Collection
+	UsersCollection   database.Collection
 
 	// clientToken: headers.Authorization - optional
 	// token of the user who is creating the article
@@ -143,9 +144,13 @@ func (params *CreateArticleParams) FromRequest(r *http.Request, db database.Data
 		return err
 	}
 
-	articles, err := getArticleCollection(params.body.ArticleType, db)
+	if params.ArticleCollection == nil {
+		articles, err := getArticleCollection(params.body.ArticleType, db)
 
-	params.ArticleCollection = articles
+		params.ArticleCollection = articles
+
+		return err
+	}
 
 	return err
 }
@@ -170,6 +175,7 @@ func HandleCreateArticle(ctx context.Context, w http.ResponseWriter, params Crea
 		createArticleParams{
 			tokens:   params.TokensCollection,
 			articles: params.ArticleCollection,
+			users:    params.UsersCollection,
 		},
 	)
 

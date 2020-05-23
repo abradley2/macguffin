@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "elm-test",
+    "test": "elm-test && go test ./lib/*",
     "coverage": "elm-coverage && http-server ./.coverage",
     "start": "parcel serve ./src/index.html"
   },
