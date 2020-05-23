@@ -1,14 +1,13 @@
 # Macguffin Task Force
 
 The Macguffin Task Force, or _"MacTaF"_ is a secretive multinational
-agency charged with keeping the world safe from destructive power of
+agency charged with keeping the world safe from the destructive power of
 random plot-contrived devices.
-
 
 
 ## Development Notes
 
-⚠️ This section is for MacTaF scientists security clearance 0 only ⚠️
+⚠️ This section is for MacTaF scientists with security clearance level 0 only ⚠️
 
 Set up a `.env` in `lib/env` with the following schema
 
