@@ -6,13 +6,18 @@ import Flags exposing (Flags)
 import Json.Encode as E
 import Main exposing (..)
 import Test exposing (..)
-import Url.Builder exposing (crossOrigin)
 import Url
+import Url.Builder exposing (crossOrigin)
+
+
+rootUrl =
+    crossOrigin "http://localhost:1234" [] []
+        |> Url.fromString
 
 suite : Test
 suite =
     describe "Main Test"
-        [ appInitialization
+        [ withUrl rootUrl appInitialization
         ]
 
 
@@ -24,25 +29,29 @@ flagsJson =
         ]
 
 
-appInitialization : Test
-appInitialization =
+withUrl : Maybe Url.Url -> (Url.Url -> Test) -> Test
+withUrl mUrl t =
+    case mUrl of
+        Just url ->
+            t url
+
+        Nothing ->
+            test "Setup failed" <|
+                \_ -> Expect.fail "Test setup failed: could not build url"
+
+
+appInitialization : Url.Url -> Test
+appInitialization url =
     describe "Application initialization"
         [ test "pass" <|
             \_ ->
-                let
-                    mUrl = crossOrigin "http://localhost:1234" [] [] |> Url.fromString
-                in
-                case mUrl of
-                    Just url ->
-                        init flagsJson url FakeKey
-                            |> (\(m, _) ->
-                                case m.page of
-                                    Main.LoginPage _ ->
-                                        Expect.pass
-                                    _ ->
-                                        Expect.fail "the app initializing to the root should show the login page"
-                            )
-                    _ ->
-                        Expect.fail "Invalid url"
+                init flagsJson url FakeKey
+                    |> (\( m, _ ) ->
+                            case m.page of
+                                Main.LoginPage _ ->
+                                    Expect.pass
 
+                                _ ->
+                                    Expect.fail "the app initializing to the root should show the login page"
+                       )
         ]
