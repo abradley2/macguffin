@@ -18,6 +18,54 @@ import Url.Builder exposing (crossOrigin)
 import Url.Parser exposing ((</>), map, oneOf, parse, s, string, top)
 
 
+type AppKey
+    = RealKey Key
+    | FakeKey
+
+
+type Effect
+    = Eff (Cmd Msg)
+    | EffBatch (List Effect)
+    | EffReplaceUrl AppKey String
+    | EffPushUrl AppKey String
+    | EffLoadUrl String
+    | EffLogErrorMessage Flags String
+    | EffStoreToken String
+
+
+performEffect : Effect -> Cmd Msg
+performEffect eff =
+    case eff of
+        EffReplaceUrl (RealKey k) url ->
+            replaceUrl k url
+
+        EffReplaceUrl FakeKey _ ->
+            Cmd.none
+
+        EffPushUrl (RealKey k) url ->
+            pushUrl k url
+
+        EffPushUrl FakeKey _ ->
+            Cmd.none
+
+        EffLogErrorMessage flags msg ->
+            logErrorMessage flags msg
+
+        EffStoreToken token ->
+            storeToken token
+
+        EffLoadUrl url ->
+            load url
+
+        EffBatch effs ->
+            effs
+                |> List.map performEffect
+                |> Cmd.batch
+
+        Eff cmd ->
+            cmd
+
+
 port storeToken : String -> Cmd msg
 
 
@@ -44,25 +92,27 @@ urlToRoute url =
     parse urlParser url
 
 
-modelWithRoute : Model -> Maybe Route -> ( Model, Cmd Msg )
+modelWithRoute : Model -> Maybe Route -> ( Model, Effect )
 modelWithRoute model route =
     case route of
         Just LoginRoute ->
             LoginPage.init model.flags model.url
                 |> mapModel (\login -> { model | page = LoginPage login })
                 |> mapMsg (LoginMsg >> PageMsg)
-                |> applyExternalMsg (handleExternalMsg model.key model.flags)
+                |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
                 |> resolve
+                |> Tuple.mapSecond Eff
 
         Just DashboardRoute ->
             DashboardPage.init model.token model.flags
                 |> mapModel (\dashboard -> { model | page = DashboardPage dashboard })
                 |> mapMsg (DashboardMsg >> PageMsg)
-                |> applyExternalMsg (handleExternalMsg model.key model.flags)
+                |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
                 |> resolve
+                |> Tuple.mapSecond Eff
 
         Nothing ->
-            ( { model | page = NotFound }, Cmd.none )
+            ( { model | page = NotFound }, Eff Cmd.none )
 
 
 logErrorMessage : Flags -> String -> Cmd Msg
@@ -83,8 +133,8 @@ logErrorMessage flags logMessage =
         }
 
 
-handleExternalMsg : Key -> Flags -> ExtMsg -> ComponentResult Model Msg a b -> ComponentResult Model Msg a b
-handleExternalMsg key flags extMsg result =
+handleExternalMsg : AppKey -> Flags -> ExtMsg -> ComponentResult Model Msg a b -> ComponentResult Model Msg a b
+handleExternalMsg appKey flags extMsg result =
     case extMsg of
         LogError err ->
             result
@@ -118,25 +168,25 @@ handleExternalMsg key flags extMsg result =
         ReplaceUrl nextUrl ->
             result
                 |> withCmds
-                    [ replaceUrl key nextUrl
+                    [ performEffect (EffReplaceUrl appKey nextUrl)
                     ]
 
         PushUrl nextUrl ->
             result
                 |> withCmds
-                    [ pushUrl key nextUrl
+                    [ performEffect (EffPushUrl appKey nextUrl)
                     ]
 
         Batch extMsgList ->
             List.foldl
-                (handleExternalMsg key flags)
+                (handleExternalMsg appKey flags)
                 result
                 extMsgList
 
 
 type alias Model =
     { appErrors : List Log
-    , key : Key
+    , appKey : AppKey
     , url : Url
     , token : Maybe Token
     , flags : Flags
@@ -158,8 +208,8 @@ type Msg
     | PageMsg PageMsg
 
 
-init : D.Value -> Url -> Key -> ( Model, Cmd Msg )
-init flagsValue url key =
+init : D.Value -> Url -> AppKey -> ( Model, Effect )
+init flagsValue url appKey =
     let
         decodedFlags =
             D.decodeValue
@@ -172,7 +222,7 @@ init flagsValue url key =
     in
     modelWithRoute
         { appErrors = []
-        , key = key
+        , appKey = appKey
         , url = url
         , page = NotFound
         , token =
@@ -195,38 +245,38 @@ init flagsValue url key =
         (urlToRoute url)
 
 
-handleExtraneousPageMsg : Model -> ( Model, Cmd Msg )
+handleExtraneousPageMsg : Model -> ( Model, Effect )
 handleExtraneousPageMsg model =
-    withModel model
-        |> withExternalMsg
-            (LogError
-                { userMessage = Nothing
-                , logMessage = Just <| "Unhandled page msg on " ++ Url.toString model.url
-                }
-            )
-        |> applyExternalMsg (handleExternalMsg model.key model.flags)
-        |> resolve
+    let
+        err =
+            { userMessage = Nothing
+            , logMessage = Just <| "Unhandled page msg on " ++ Url.toString model.url
+            }
+    in
+    ( { model | appErrors = err :: model.appErrors }
+    , EffLogErrorMessage model.flags ("Unhandled page msg on " ++ Url.toString model.url)
+    )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect )
 update msg model =
     case msg of
         OnUrlRequest (Internal url) ->
-            ( model, pushUrl model.key (Url.toString url) )
+            ( model, EffPushUrl model.appKey (Url.toString url) )
 
         OnUrlRequest (External url) ->
-            ( model, load url )
+            ( model, EffLoadUrl url )
 
         OnUrlChange url ->
             modelWithRoute { model | url = url } (urlToRoute url)
 
         DismissErrorMessages ->
-            ( { model | appErrors = [] }, Cmd.none )
+            ( { model | appErrors = [] }, Eff Cmd.none )
 
         ErrorLogged _ ->
             -- there's nothing to do here. If we logged the error ok.
             -- if it failed to log then we have an error logging an error...
-            ( model, Cmd.none )
+            ( model, Eff Cmd.none )
 
         PageMsg (LoginMsg loginMsg) ->
             case model.page of
@@ -234,8 +284,9 @@ update msg model =
                     LoginPage.update loginMsg loginPage
                         |> mapMsg (LoginMsg >> PageMsg)
                         |> mapModel (\page -> { model | page = LoginPage page })
-                        |> applyExternalMsg (handleExternalMsg model.key model.flags)
+                        |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
                         |> resolve
+                        |> Tuple.mapSecond Eff
 
                 -- we are no longer on the Login page
                 _ ->
@@ -247,8 +298,9 @@ update msg model =
                     DashboardPage.update model.flags dashboardMsg dashboardPage
                         |> mapMsg (DashboardMsg >> PageMsg)
                         |> mapModel (\page -> { model | page = DashboardPage page })
-                        |> applyExternalMsg (handleExternalMsg model.key model.flags)
+                        |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
                         |> resolve
+                        |> Tuple.mapSecond Eff
 
                 _ ->
                     handleExtraneousPageMsg model
@@ -318,8 +370,8 @@ main : Program D.Value Model Msg
 main =
     application
         { view = view
-        , update = update
-        , init = init
+        , update = \msg model -> update msg model |> Tuple.mapSecond performEffect
+        , init = \flags url key -> init flags url (RealKey key) |> Tuple.mapSecond performEffect
         , subscriptions = subscriptions
         , onUrlChange = OnUrlChange
         , onUrlRequest = OnUrlRequest
