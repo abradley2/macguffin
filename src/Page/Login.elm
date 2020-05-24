@@ -9,6 +9,7 @@ import Html.Attributes as A
 import Http
 import Json.Decode as D
 import Json.Encode as E
+import PageResult exposing (resolveEffects, withEffect)
 import Url exposing (Url)
 import Url.Builder exposing (crossOrigin, string)
 import Url.Parser exposing (parse, query)
@@ -25,6 +26,25 @@ ghUrl flags =
         ]
 
 
+type Effect
+    = Eff (Cmd Msg)
+    | EffBatch (List Effect)
+    | EffFetchToken Flags String
+
+
+performEffect : Effect -> Cmd Msg
+performEffect effect =
+    case effect of
+        Eff cmd ->
+            cmd
+
+        EffBatch effList ->
+            effList |> List.map performEffect |> Cmd.batch
+
+        EffFetchToken flags code ->
+            getToken flags code
+
+
 type alias Model =
     {}
 
@@ -34,7 +54,7 @@ type Msg
 
 
 type alias PageResult =
-    ComponentResult Model Msg ExtMsg Never
+    ComponentResult ( Model, Effect ) Msg ExtMsg Never
 
 
 getToken : Flags -> String -> Cmd Msg
@@ -60,21 +80,30 @@ queryParser =
     Q.map (\v -> v) (Q.string "code")
 
 
-init : Flags -> Url -> PageResult
 init flags url =
+    init_ flags url
+        |> resolveEffects performEffect
+
+
+init_ : Flags -> Url -> PageResult
+init_ flags url =
     let
-        loginCmd =
+        login =
             parse (query queryParser) url
                 |> Maybe.andThen (\v -> v)
-                |> Maybe.map (getToken flags)
-                |> Maybe.withDefault Cmd.none
+                |> Maybe.map (EffFetchToken flags)
+                |> Maybe.withDefault (Eff Cmd.none)
     in
     withModel {}
-        |> withCmds [ loginCmd ]
+        |> withEffect login
 
 
-update : Msg -> Model -> PageResult
 update msg model =
+    update_ msg model |> resolveEffects performEffect
+
+
+update_ : Msg -> Model -> PageResult
+update_ msg model =
     case msg of
         FetchedToken (Result.Err httpErr) ->
             withModel model
@@ -84,6 +113,7 @@ update msg model =
                         , userMessage = Just <| "Login Failed :("
                         }
                     )
+                |> withEffect (Eff Cmd.none)
 
         FetchedToken (Result.Ok tokenResponse) ->
             withModel model
@@ -93,6 +123,7 @@ update msg model =
                         , ReplaceUrl "/agent-dashboard"
                         ]
                     )
+                |> withEffect (Eff Cmd.none)
 
 
 view : Flags -> Model -> H.Html Msg

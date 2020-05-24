@@ -1,8 +1,8 @@
-module Page.Dashboard exposing (Modal(..), Model, Msg(..), init, update, view, decodeUserProfile)
+module Page.Dashboard exposing (..)
 
-import ComponentResult exposing (ComponentResult, applyExternalMsg, mapModel, mapMsg, withCmds, withExternalMsg, withModel)
+import ComponentResult exposing (ComponentResult, applyExternalMsg, mapModel, mapMsg, withExternalMsg, withModel)
 import Data.Http exposing (handlePossibleSessionTimeout, httpErrToString)
-import ExtMsg exposing (ExtMsg(..), Log, Token(..))
+import ExtMsg exposing (ExtMsg(..), Token(..))
 import Flags exposing (Flags)
 import Html as H
 import Html.Attributes as A
@@ -10,9 +10,35 @@ import Html.Events as E
 import Http
 import Json.Decode as D
 import Page.Dashboard.ProfileForm as ProfileForm
+import PageResult exposing (withEffect, resolveEffects)
 import RemoteData exposing (RemoteData(..), WebData)
 import Url.Builder exposing (crossOrigin, string)
 import View.Folder as Folder
+
+
+type Effect
+    = Eff (Cmd Msg)
+    | EffBatch (List Effect)
+    | EffFetchUserProfile Flags Token
+    | EffFetchMacguffinItems (Maybe Token) Flags
+
+
+performEffect : Effect -> Cmd Msg
+performEffect effect =
+    case effect of
+        Eff cmd ->
+            cmd
+
+        EffBatch effs ->
+            effs
+                |> List.map performEffect
+                |> Cmd.batch
+
+        EffFetchUserProfile flags token ->
+            getUserProfile flags token
+
+        EffFetchMacguffinItems mToken flags ->
+            getMacguffinItems mToken flags
 
 
 type Modal
@@ -149,11 +175,14 @@ type Msg
 
 
 type alias PageResult =
-    ComponentResult Model Msg ExtMsg Never
+    ComponentResult ( Model, Effect ) Msg ExtMsg Never
 
-
-init : Maybe Token -> Flags -> PageResult
 init mToken flags =
+    init_ mToken flags
+        |> resolveEffects performEffect
+
+init_ : Maybe Token -> Flags -> PageResult
+init_ mToken flags =
     withModel
         { macguffinItems = Loading
         , modal = Nothing
@@ -162,21 +191,29 @@ init mToken flags =
                 |> Maybe.map (\_ -> Loading)
                 |> Maybe.withDefault NotAsked
         }
-        |> withCmds
-            [ getMacguffinItems mToken flags
-            , mToken
-                |> Maybe.map (getUserProfile flags)
-                |> Maybe.withDefault Cmd.none
-            ]
+        |> withEffect
+            (EffBatch
+                [ EffFetchMacguffinItems mToken flags
+                , mToken
+                    |> Maybe.map (EffFetchUserProfile flags)
+                    |> Maybe.withDefault (Eff Cmd.none)
+                ]
+            )
 
 
-update : Flags -> Msg -> Model -> PageResult
+update : Flags -> Msg -> Model -> ComponentResult Model Msg ExtMsg Never
 update flags msg model =
+    update_ flags msg model 
+        |> resolveEffects performEffect
+
+update_ : Flags -> Msg -> Model -> PageResult
+update_ flags msg model =
     case msg of
         FetchedMacguffinItems httpRes ->
             case httpRes of
                 Result.Ok macguffinItems ->
                     withModel { model | macguffinItems = Success macguffinItems }
+                        |> withEffect (Eff Cmd.none)
 
                 Result.Err httpErr ->
                     withModel model
@@ -189,11 +226,13 @@ update flags msg model =
                                         }
                                     )
                             )
+                        |> withEffect (Eff Cmd.none)
 
         FetchedUserProfile httpRes ->
             case httpRes of
                 Result.Ok userProfile ->
                     withModel { model | userProfile = Success userProfile }
+                        |> withEffect (Eff Cmd.none)
 
                 Result.Err httpErr ->
                     withModel model
@@ -206,12 +245,15 @@ update flags msg model =
                                         }
                                     )
                             )
+                        |> withEffect (Eff Cmd.none)
 
         ToggleModal nextModal ->
             withModel { model | modal = Just nextModal }
+                |> withEffect (Eff Cmd.none)
 
         CloseModal ->
             withModel { model | modal = Nothing }
+                |> withEffect (Eff Cmd.none)
 
         ProfileFormMsg formMsg ->
             case model.modal of
@@ -228,6 +270,7 @@ update flags msg model =
                                     ProfileForm.Submit _ ->
                                         mapModel (\newModel -> { newModel | modal = Nothing }) result
                             )
+                        |> withEffect (Eff Cmd.none)
 
                 _ ->
                     withModel model
@@ -237,6 +280,7 @@ update flags msg model =
                                 , logMessage = Just "Unhandled profile form message"
                                 }
                             )
+                        |> withEffect (Eff Cmd.none)
 
 
 view : Maybe Token -> Flags -> Model -> H.Html Msg
@@ -337,9 +381,10 @@ modalView title modal =
 profileModalView : Maybe Token -> Flags -> Model -> ProfileForm.Model -> H.Html Msg
 profileModalView mToken flags model formModel =
     let
-        mPublicAgentID = model.userProfile
-            |> RemoteData.toMaybe
-            |> Maybe.andThen .publicAgentID
+        mPublicAgentID =
+            model.userProfile
+                |> RemoteData.toMaybe
+                |> Maybe.andThen .publicAgentID
     in
     H.div
         [ A.class "window__body dashboard-profilemodal" ]
