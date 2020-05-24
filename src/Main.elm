@@ -2,7 +2,7 @@ port module Main exposing (..)
 
 import Browser exposing (Document, UrlRequest(..), application)
 import Browser.Navigation exposing (Key, load, pushUrl, replaceUrl)
-import ComponentResult exposing (ComponentResult, applyExternalMsg, mapModel, mapMsg, resolve, withCmds, withExternalMsg, withModel)
+import ComponentResult exposing (ComponentResult, mapModel, mapMsg, resolve, withCmds)
 import ExtMsg exposing (ExtMsg(..), Log, Token(..))
 import Flags exposing (Flags)
 import Html as H
@@ -13,6 +13,7 @@ import Json.Decode as D
 import Json.Encode as E
 import Page.Dashboard as DashboardPage
 import Page.Login as LoginPage
+import PageResult exposing (applyExternalMsgWithEffect)
 import Url exposing (Url)
 import Url.Builder exposing (crossOrigin)
 import Url.Parser exposing ((</>), map, oneOf, parse, s, string, top)
@@ -31,6 +32,10 @@ type Effect
     | EffLoadUrl String
     | EffLogErrorMessage Flags String
     | EffStoreToken String
+
+
+applyExternalMsg =
+    applyExternalMsgWithEffect Eff EffBatch
 
 
 performEffect : Effect -> Cmd Msg
@@ -100,16 +105,12 @@ modelWithRoute model route =
                 |> mapModel (\login -> { model | page = LoginPage login })
                 |> mapMsg (LoginMsg >> PageMsg)
                 |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
-                |> resolve
-                |> Tuple.mapSecond Eff
 
         Just DashboardRoute ->
             DashboardPage.init model.token model.flags
                 |> mapModel (\dashboard -> { model | page = DashboardPage dashboard })
                 |> mapMsg (DashboardMsg >> PageMsg)
                 |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
-                |> resolve
-                |> Tuple.mapSecond Eff
 
         Nothing ->
             ( { model | page = NotFound }, Eff Cmd.none )
@@ -133,54 +134,43 @@ logErrorMessage flags logMessage =
         }
 
 
-handleExternalMsg : AppKey -> Flags -> ExtMsg -> ComponentResult Model Msg a Never -> ComponentResult Model Msg a Never
-handleExternalMsg appKey flags extMsg result =
+handleExternalMsg : AppKey -> Flags -> ExtMsg -> Model -> ( Model, Effect )
+handleExternalMsg appKey flags extMsg model =
     case extMsg of
         LogError err ->
-            result
-                |> mapModel
-                    (\model ->
-                        { model
-                            | appErrors = err :: model.appErrors
-                        }
-                    )
-                |> withCmds
-                    [ case err.logMessage of
-                        Just logMessage ->
-                            logErrorMessage flags logMessage
+            ( { model
+                | appErrors = err :: model.appErrors
+              }
+            , case err.logMessage of
+                Just logMessage ->
+                    EffLogErrorMessage model.flags logMessage
 
-                        Nothing ->
-                            Cmd.none
-                    ]
+                Nothing ->
+                    Eff Cmd.none
+            )
 
         SetToken token ->
-            result
-                |> mapModel
-                    (\model ->
-                        { model | token = Just token }
-                    )
-                |> withCmds
-                    [ case token of
-                        Token val ->
-                            storeToken val
-                    ]
+            ( { model
+                | token = Just token
+              }
+            , case token of
+                Token val ->
+                    EffStoreToken val
+            )
 
         ReplaceUrl nextUrl ->
-            result
-                |> withCmds
-                    [ performEffect (EffReplaceUrl appKey nextUrl)
-                    ]
+            ( model, EffReplaceUrl appKey nextUrl )
 
         PushUrl nextUrl ->
-            result
-                |> withCmds
-                    [ performEffect (EffPushUrl appKey nextUrl)
-                    ]
+            ( model, EffPushUrl appKey nextUrl )
 
         Batch extMsgList ->
             List.foldl
-                (handleExternalMsg appKey flags)
-                result
+                (\msg ( curModel, eff ) ->
+                    handleExternalMsg appKey flags msg curModel
+                        |> Tuple.mapSecond (\nextEff -> EffBatch [ eff, nextEff ])
+                )
+                ( model, Eff Cmd.none )
                 extMsgList
 
 
@@ -285,8 +275,6 @@ update msg model =
                         |> mapMsg (LoginMsg >> PageMsg)
                         |> mapModel (\page -> { model | page = LoginPage page })
                         |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
-                        |> resolve
-                        |> Tuple.mapSecond Eff
 
                 -- we are no longer on the Login page
                 _ ->
@@ -299,8 +287,6 @@ update msg model =
                         |> mapMsg (DashboardMsg >> PageMsg)
                         |> mapModel (\page -> { model | page = DashboardPage page })
                         |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
-                        |> resolve
-                        |> Tuple.mapSecond Eff
 
                 _ ->
                     handleExtraneousPageMsg model
