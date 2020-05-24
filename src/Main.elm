@@ -133,7 +133,7 @@ logErrorMessage flags logMessage =
         }
 
 
-handleExternalMsg : AppKey -> Flags -> ExtMsg -> ComponentResult Model Msg a b -> ComponentResult Model Msg a b
+handleExternalMsg : AppKey -> Flags -> ExtMsg -> ComponentResult Model Msg a Never -> ComponentResult Model Msg a Never
 handleExternalMsg appKey flags extMsg result =
     case extMsg of
         LogError err ->
