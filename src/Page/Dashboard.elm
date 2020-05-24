@@ -10,7 +10,7 @@ import Html.Events as E
 import Http
 import Json.Decode as D
 import Page.Dashboard.ProfileForm as ProfileForm
-import PageResult exposing (withEffect, resolveEffects)
+import PageResult exposing (resolveEffects, withEffect)
 import RemoteData exposing (RemoteData(..), WebData)
 import Url.Builder exposing (crossOrigin, string)
 import View.Folder as Folder
@@ -30,9 +30,7 @@ performEffect effect =
             cmd
 
         EffBatch effs ->
-            effs
-                |> List.map performEffect
-                |> Cmd.batch
+            effs |> List.map performEffect |> Cmd.batch
 
         EffFetchUserProfile flags token ->
             getUserProfile flags token
@@ -177,9 +175,11 @@ type Msg
 type alias PageResult =
     ComponentResult ( Model, Effect ) Msg ExtMsg Never
 
+
 init mToken flags =
     init_ mToken flags
         |> resolveEffects performEffect
+
 
 init_ : Maybe Token -> Flags -> PageResult
 init_ mToken flags =
@@ -203,8 +203,9 @@ init_ mToken flags =
 
 update : Flags -> Msg -> Model -> ComponentResult Model Msg ExtMsg Never
 update flags msg model =
-    update_ flags msg model 
+    update_ flags msg model
         |> resolveEffects performEffect
+
 
 update_ : Flags -> Msg -> Model -> PageResult
 update_ flags msg model =
