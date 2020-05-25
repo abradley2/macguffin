@@ -36,6 +36,12 @@ token =
     Just (Token "token")
 
 
+effectsTesting : Test
+effectsTesting =
+    describe "Dashboard effects test"
+        []
+
+
 suite : Test
 suite =
     describe "dashboard page"

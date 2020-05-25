@@ -250,7 +250,7 @@ update_ flags msg model =
 
         ToggleModal nextModal ->
             withModel { model | modal = Just nextModal }
-                |> withEffect (Eff Cmd.none)
+                |> withEffect (EffFetchMacguffinItems Nothing flags)
 
         CloseModal ->
             withModel { model | modal = Nothing }

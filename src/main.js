@@ -23,8 +23,8 @@ app.ports.storeToken.subscribe((token) => {
   }
 })
 
-if (window.location.search.includes("code")) {
-  setTimeout(function () {
-    window.history.replaceState(null, document.title, "/")
-  }, 0)
-}
+// if (window.location.search.includes("code")) {
+//   setTimeout(function () {
+//     window.history.replaceState(null, document.title, "/")
+//   }, 0)
+// }

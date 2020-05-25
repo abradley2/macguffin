@@ -2,7 +2,7 @@ port module Main exposing (..)
 
 import Browser exposing (Document, UrlRequest(..), application)
 import Browser.Navigation exposing (Key, load, pushUrl, replaceUrl)
-import ComponentResult exposing (ComponentResult, mapModel, mapMsg, resolve, withCmds)
+import ComponentResult exposing (ComponentResult, applyExternalMsg, escape, mapModel, mapMsg, resolve, withCmds)
 import ExtMsg exposing (ExtMsg(..), Log, Token(..))
 import Flags exposing (Flags)
 import Html as H
@@ -13,7 +13,6 @@ import Json.Decode as D
 import Json.Encode as E
 import Page.Dashboard as DashboardPage
 import Page.Login as LoginPage
-import PageResult exposing (applyExternalMsgWithEffect)
 import Url exposing (Url)
 import Url.Builder exposing (crossOrigin)
 import Url.Parser exposing ((</>), map, oneOf, parse, s, string, top)
@@ -32,10 +31,6 @@ type Effect
     | EffLoadUrl String
     | EffLogErrorMessage Flags String
     | EffStoreToken String
-
-
-applyExternalMsg =
-    applyExternalMsgWithEffect Eff EffBatch
 
 
 performEffect : Effect -> Cmd Msg
@@ -104,13 +99,13 @@ modelWithRoute model route =
             LoginPage.init model.flags model.url
                 |> mapModel (\login -> { model | page = LoginPage login })
                 |> mapMsg (LoginMsg >> PageMsg)
-                |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
+                |> handleExternalMsg model.appKey model.flags
 
         Just DashboardRoute ->
             DashboardPage.init model.token model.flags
                 |> mapModel (\dashboard -> { model | page = DashboardPage dashboard })
                 |> mapMsg (DashboardMsg >> PageMsg)
-                |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
+                |> handleExternalMsg model.appKey model.flags
 
         Nothing ->
             ( { model | page = NotFound }, Eff Cmd.none )
@@ -134,8 +129,32 @@ logErrorMessage flags logMessage =
         }
 
 
-handleExternalMsg : AppKey -> Flags -> ExtMsg -> Model -> ( Model, Effect )
-handleExternalMsg appKey flags extMsg model =
+handleExternalMsg :
+    AppKey
+    -> Flags
+    -> ComponentResult Model Msg ExtMsg Never
+    -> ( Model, Effect )
+handleExternalMsg appKey flags result =
+    case escape result of
+        Result.Ok ( model, cmd, mExtMsg ) ->
+            case mExtMsg of
+                Just extMsg ->
+                    handleExternalMsg_ appKey flags ( model, Eff cmd ) extMsg
+
+                Nothing ->
+                    ( model, Eff cmd )
+
+        Result.Err _ ->
+            handleExternalMsg appKey flags result
+
+
+handleExternalMsg_ :
+    AppKey
+    -> Flags
+    -> ( Model, Effect )
+    -> ExtMsg
+    -> ( Model, Effect )
+handleExternalMsg_ appKey flags ( model, eff ) extMsg =
     case extMsg of
         LogError err ->
             ( { model
@@ -143,7 +162,7 @@ handleExternalMsg appKey flags extMsg model =
               }
             , case err.logMessage of
                 Just logMessage ->
-                    EffLogErrorMessage model.flags logMessage
+                    EffLogErrorMessage flags logMessage
 
                 Nothing ->
                     Eff Cmd.none
@@ -166,11 +185,11 @@ handleExternalMsg appKey flags extMsg model =
 
         Batch extMsgList ->
             List.foldl
-                (\msg ( curModel, eff ) ->
-                    handleExternalMsg appKey flags msg curModel
-                        |> Tuple.mapSecond (\nextEff -> EffBatch [ eff, nextEff ])
+                (\msg ( curModel, curEff ) ->
+                    handleExternalMsg_ appKey flags ( curModel, curEff ) msg
+                        |> Tuple.mapSecond (\e -> EffBatch [ e, curEff ])
                 )
-                ( model, Eff Cmd.none )
+                ( model, eff )
                 extMsgList
 
 
@@ -274,7 +293,7 @@ update msg model =
                     LoginPage.update loginMsg loginPage
                         |> mapMsg (LoginMsg >> PageMsg)
                         |> mapModel (\page -> { model | page = LoginPage page })
-                        |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
+                        |> handleExternalMsg model.appKey model.flags
 
                 -- we are no longer on the Login page
                 _ ->
@@ -286,7 +305,7 @@ update msg model =
                     DashboardPage.update model.flags dashboardMsg dashboardPage
                         |> mapMsg (DashboardMsg >> PageMsg)
                         |> mapModel (\page -> { model | page = DashboardPage page })
-                        |> applyExternalMsg (handleExternalMsg model.appKey model.flags)
+                        |> handleExternalMsg model.appKey model.flags
 
                 _ ->
                     handleExtraneousPageMsg model
@@ -348,7 +367,7 @@ appErrorsView errorLogs =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -356,8 +375,12 @@ main : Program D.Value Model Msg
 main =
     application
         { view = view
-        , update = \msg model -> update msg model |> Tuple.mapSecond performEffect
-        , init = \flags url key -> init flags url (RealKey key) |> Tuple.mapSecond performEffect
+        , update =
+            \msg model ->
+                update msg model |> Tuple.mapSecond performEffect
+        , init =
+            \flags url key ->
+                init flags url (RealKey key) |> Tuple.mapSecond performEffect
         , subscriptions = subscriptions
         , onUrlChange = OnUrlChange
         , onUrlRequest = OnUrlRequest
