@@ -8,6 +8,7 @@ import ComponentResult
         , withCmds
         , withExternalMsg
         , withModel
+        , justError
         )
 
 
@@ -44,7 +45,6 @@ resolveEffects performEffect effectfulResult =
                             mExtMsg
                             |> Maybe.withDefault res
 
-                    Result.Err _ ->
-                        effectfulResult
-                            |> mapModel (\( m, _ ) -> m)
+                    Result.Err e ->
+                        justError e
            )
