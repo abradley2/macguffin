@@ -8,11 +8,11 @@ import Html as H
 import Html.Attributes as A
 import Html.Events as E
 import Http
-import Json.Decode as D
+import Page.Dashboard.MacguffinItem as MacguffinItem exposing (MacguffinItem)
 import Page.Dashboard.ProfileForm as ProfileForm
+import Page.Dashboard.UserProfile as UserProfile exposing (UserProfile)
 import PageResult exposing (resolveEffects, withEffect)
 import RemoteData exposing (RemoteData(..), WebData)
-import Url.Builder exposing (crossOrigin, string)
 import View.Folder as Folder
 
 
@@ -33,104 +33,16 @@ performEffect effect =
             effs |> List.map performEffect |> Cmd.batch
 
         EffFetchUserProfile flags token ->
-            getUserProfile flags token
+            UserProfile.getUserProfile flags token FetchedUserProfile
 
         EffFetchMacguffinItems mToken flags ->
-            getMacguffinItems mToken flags
+            MacguffinItem.getMacguffinItems mToken flags FetchedMacguffinItems
 
 
 type Modal
     = Profile ProfileForm.Model
     | ContainmentSites
     | Protocols
-
-
-type alias UserProfile =
-    { publicAgentID : Maybe String
-    , strength : Int
-    , dexterity : Int
-    , constitution : Int
-    , intelligence : Int
-    , wisdom : Int
-    , charisma : Int
-    }
-
-
-decodeUserProfile : D.Decoder UserProfile
-decodeUserProfile =
-    D.map7 UserProfile
-        (D.maybe <| D.field "publicAgentID" D.string)
-        (D.field "strength" D.int)
-        (D.field "dexterity" D.int)
-        (D.field "constitution" D.int)
-        (D.field "intelligence" D.int)
-        (D.field "wisdom" D.int)
-        (D.field "charisma" D.int)
-
-
-getUserProfile : Flags -> Token -> Cmd Msg
-getUserProfile flags token =
-    case token of
-        Token token_ ->
-            Http.request
-                { url = Url.Builder.crossOrigin flags.apiUrl [ "profile" ] []
-                , method = "GET"
-                , timeout = Just 2000
-                , expect = Http.expectJson FetchedUserProfile decodeUserProfile
-                , headers =
-                    [ Http.header "Authorization" token_
-                    ]
-                , tracker = Just "getUserProfile"
-                , body = Http.emptyBody
-                }
-
-
-type alias MacguffinItem =
-    { name : String
-    , thumbnail : Maybe String
-    , id : String
-    , creator : String
-    , createdAt : String
-    , approved : Bool
-    }
-
-
-decodeMacguffinItem : D.Decoder MacguffinItem
-decodeMacguffinItem =
-    D.map6 MacguffinItem
-        (D.field "itemTitle" D.string)
-        (D.maybe <| D.field "thumbnail" D.string)
-        (D.field "_id" D.string)
-        (D.field "creator" D.string)
-        (D.field "createdAt" D.string)
-        (D.field "approved" D.bool)
-
-
-getItemsTracker : String
-getItemsTracker =
-    "getItemsTracker"
-
-
-getMacguffinItems : Maybe Token -> Flags -> Cmd Msg
-getMacguffinItems mToken flags =
-    Http.request
-        { body = Http.emptyBody
-        , expect =
-            Http.expectJson
-                FetchedMacguffinItems
-                (D.list decodeMacguffinItem)
-        , headers =
-            case mToken of
-                Just (Token token) ->
-                    [ Http.header "Authorization" token ]
-
-                _ ->
-                    []
-        , method = "GET"
-        , tracker = Just getItemsTracker
-        , url = crossOrigin flags.apiUrl [ "articles" ] [ string "type" "macguffins" ]
-        , timeout = Just 1000
-        }
 
 
 type alias Model =

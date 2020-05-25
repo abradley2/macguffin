@@ -36,11 +36,6 @@ token =
     Just (Token "token")
 
 
-effectsTesting : Test
-effectsTesting =
-    describe "Dashboard effects test"
-        []
-
 
 suite : Test
 suite =
@@ -112,4 +107,33 @@ suite =
                         )
                     |> Maybe.withDefault (Expect.fail "No extMsg")
             )
+        , test "Should make a request for articles when initializing"
+            (\_ ->
+                DashboardPage.init_ token flags
+                    |> getModel >> Tuple.second
+                    |> findEffect (\e ->
+                        case e of
+                            DashboardPage.EffFetchMacguffinItems _ _ ->
+                                True
+                            _ ->
+                                False
+                    )
+                    |> Expect.equal True
+            )
         ]
+
+
+findEffect :  (DashboardPage.Effect -> Bool) -> DashboardPage.Effect -> Bool
+findEffect predicate eff =
+    case eff of
+        DashboardPage.EffBatch effs ->
+            List.foldl 
+                (\e found ->
+                    if found then found
+                    else findEffect predicate e
+                )
+                True
+                effs
+
+        _ ->
+            predicate eff

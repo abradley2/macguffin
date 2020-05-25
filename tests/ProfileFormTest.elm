@@ -8,8 +8,9 @@ import Html as H
 import Html.Attributes as A
 import Json.Decode as D
 import Json.Encode as E
-import Page.Dashboard as Dashboard exposing (Msg(..), decodeUserProfile)
+import Page.Dashboard as Dashboard exposing (Msg(..))
 import Page.Dashboard.ProfileForm as ProfileForm
+import Page.Dashboard.UserProfile as UserProfile
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -55,7 +56,11 @@ suite =
     describe "Dashboard ProfileForm"
         [ test "Can decode an expected userProfile"
             (\_ ->
-                case D.decodeString decodeUserProfile (E.encode 2 profileResponse) of
+                case
+                    D.decodeString
+                        UserProfile.decodeUserProfile
+                        (E.encode 2 profileResponse)
+                of
                     Result.Ok _ ->
                         Expect.pass
 
@@ -64,7 +69,11 @@ suite =
             )
         , test "When we load a users profile this should pre-populate the profile form"
             (\_ ->
-                case D.decodeString decodeUserProfile (E.encode 2 profileResponse) of
+                case
+                    D.decodeString
+                        UserProfile.decodeUserProfile
+                        (E.encode 2 profileResponse)
+                of
                     Result.Ok userProfile ->
                         let
                             withUserProfile =
