@@ -127,7 +127,7 @@ findEffect :  (DashboardPage.Effect -> Bool) -> DashboardPage.Effect -> Bool
 findEffect predicate eff =
     case eff of
         DashboardPage.EffBatch effs ->
-            List.foldl 
+            List.foldl
                 (\e found ->
                     if found then found
                     else findEffect predicate e

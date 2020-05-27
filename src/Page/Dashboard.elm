@@ -55,13 +55,12 @@ type alias Model =
 {-| When we initialize the profile form, if we have a user loaded then use this
 to populate it's default values
 -}
-initProfileForm : Model -> ProfileForm.Model
-initProfileForm model =
+initProfileForm : WebData UserProfile -> ProfileForm.Model
+initProfileForm mUserProfile =
     let
-        default =
-            ProfileForm.init
+        default = ProfileForm.init
     in
-    case model.userProfile of
+    case mUserProfile of
         Success profile ->
             { default
                 | charisma = profile.charisma
@@ -227,7 +226,7 @@ view mToken flags model =
                 [ A.attribute "data-test" "profile-form-button"
                 , E.onClick <|
                     ToggleModal
-                        (Profile (initProfileForm model))
+                        (Profile (initProfileForm model.userProfile))
                 ]
                 "Agent Profile"
             , Folder.view [ E.onClick <| ToggleModal ContainmentSites ] "Containment Sites"
