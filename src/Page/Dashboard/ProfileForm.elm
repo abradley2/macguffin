@@ -68,11 +68,15 @@ type Msg
     | DexterityChanged Int
     | ConstitutionChanged Int
     | SubmitForm
+    | TabChanged Tab
 
 
 update : Msg -> Model -> FormResult
 update msg model =
     case msg of
+        TabChanged tab ->
+            withModel { model | activeTab = tab }
+
         CharismaChanged charisma ->
             withModel { model | charisma = charisma }
 
@@ -113,6 +117,7 @@ view mAgentID model =
                 H.div
                     []
                     []
+        , H.div [] [ tabsView ]
         , H.div []
             [ case model.activeTab of
                 Stats ->
@@ -120,6 +125,25 @@ view mAgentID model =
 
                 Bio ->
                     bioTabView model
+            ]
+        ]
+
+
+tabsView : H.Html Msg
+tabsView =
+    H.div
+        []
+        [ H.button
+            [ A.attribute "data-test" "stats-tab"
+            , E.onClick (TabChanged Stats)
+            ]
+            [ H.text "Stats"
+            ]
+        , H.button
+            [ A.attribute "data-test" "bio-tab"
+            , E.onClick (TabChanged Bio)
+            ]
+            [ H.text "Bio"
             ]
         ]
 

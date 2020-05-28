@@ -78,6 +78,30 @@ suite =
                         Expect.fail (D.errorToString err)
             )
 
+        , test "Can switch to bio tab by clicking on button" <|
+            \_ ->
+                ProfileForm.init
+                    |> ProfileForm.view (Just "agent-id")
+                    |> Query.fromHtml
+                    |> Query.find [
+                        Selector.attribute <| A.attribute "data-test" "bio-tab"
+                    ]
+                    |> Event.simulate Event.click
+                    |> Event.toResult
+                    |> Result.map (\msg ->
+                        ProfileForm.update msg ProfileForm.init
+                    )
+                    |> Result.map (getModel >> .activeTab)
+                    |> Result.map (\activeTab ->
+                        case activeTab of
+                            ProfileForm.Bio ->
+                                Expect.pass
+                            _ ->
+                                Expect.fail "Did not open bio tab"
+                    )
+                    |> Result.withDefault (Expect.fail "Click on tab did not trigger msg")
+
+
         -- prefill tests
         , test "Strength prefill should work"
             (\_ -> testFormPrefill "Strength" .strength)

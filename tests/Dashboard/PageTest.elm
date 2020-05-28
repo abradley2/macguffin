@@ -48,8 +48,8 @@ userProfile =
 suite_ : Url -> Test
 suite_ url =
     describe "Dashboard page test"
-        [ test "Our main file properly handles dashboard page updates"
-            (\_ ->
+        [ test "Our main file properly handles dashboard page updates" <|
+            \_ ->
                 withDashboardPage url
                     |> Main.update
                         (Result.Ok userProfile
@@ -71,7 +71,6 @@ suite_ url =
                                 _ ->
                                     Expect.fail "Dashboard page not rendered"
                        )
-            )
         ]
 
 

@@ -2,6 +2,7 @@ module LoginTest exposing (..)
 
 import Expect exposing (..)
 import ExtMsg exposing (Token(..))
+import Http
 import Json.Encode as E
 import Main
 import Page.Login as LoginPage
@@ -50,6 +51,7 @@ suite =
     case mLoginUrl of
         Just url ->
             suite_ url
+
         Nothing ->
             test "LoginTest setup failed" (\_ -> Expect.fail "Could not parse url")
 
@@ -63,9 +65,34 @@ suite_ url =
                     |> withLoginModel
                     |> withFetchedToken
                     |> Tuple.second
+                    |> findEffect
+                        (\eff ->
+                            case eff of
+                                Main.EffReplaceUrl Main.FakeKey "/agent-dashboard" ->
+                                    True
+
+                                _ ->
+                                    False
+                        )
+                    |> Expect.equal True
+        , test "Should log an error when we fail to get a token" <|
+            \_ ->
+                url
+                    |> withLoginModel
+                    |> (\model ->
+                            Main.update
+                                (Http.NetworkError
+                                    |> Result.Err
+                                    |> LoginPage.FetchedToken
+                                    |> Main.LoginMsg
+                                    |> Main.PageMsg
+                                )
+                                model
+                       )
+                    |> Tuple.second
                     |> findEffect (\eff ->
                         case eff of
-                            Main.EffReplaceUrl Main.FakeKey "/agent-dashboard" ->
+                            Main.EffLogErrorMessage _ _ ->
                                 True
                             _ ->
                                 False
