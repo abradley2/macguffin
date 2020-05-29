@@ -34,3 +34,43 @@
   padding-top: 4px;
   color: white;
 }
+
+/* TABS */
+
+.tabs {
+
+}
+
+.tabs__header {
+
+}
+
+.tabs__headerbuttons {
+  display: flex;
+}
+
+.tabgroup {
+  position: relative;
+}
+
+.tabgroup--active {
+  position: absolute;
+  top: calc(100% - 4px);
+  height: 4px;
+  background-color: var(--windows-grey);
+  left: -2px;
+  right: 4px;
+}
+
+.tabgroup__button {
+  border: 4px groove var(--windows-grey);
+  margin-left: -4px;
+}
+
+
+.tabs__body {
+  padding: 16px;
+  border: 4px groove var(--windows-grey);
+  margin-top: -4px;
+  margin-left: -4px;
+}

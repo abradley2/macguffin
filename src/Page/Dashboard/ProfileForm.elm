@@ -117,33 +117,75 @@ view mAgentID model =
                 H.div
                     []
                     []
-        , H.div [] [ tabsView ]
-        , H.div []
-            [ case model.activeTab of
-                Stats ->
-                    statsTabView model
+        , H.div
+            [ A.class "tabs" ]
+            [ H.div
+                [ A.class "tabs__header"
+                ]
+                [ tabsView model.activeTab ]
+            , H.div
+                [ A.class "tabs__body"
+                ]
+                [ case model.activeTab of
+                    Stats ->
+                        statsTabView model
 
-                Bio ->
-                    bioTabView model
+                    Bio ->
+                        bioTabView model
+                ]
             ]
         ]
 
 
-tabsView : H.Html Msg
-tabsView =
+tabBtnClass =
+    A.classList
+        [ ( "button", True )
+        , ( "tabgroup__button", True )
+        ]
+
+
+tabsView : Tab -> H.Html Msg
+tabsView activeTab =
     H.div
-        []
-        [ H.button
-            [ A.attribute "data-test" "stats-tab"
-            , E.onClick (TabChanged Stats)
+        [ A.class "tabs__headerbuttons"
+        ]
+        [ H.div
+            [ A.class "tabgroup"
             ]
-            [ H.text "Stats"
+            [ H.button
+                [ A.attribute "data-test" "stats-tab"
+                , tabBtnClass
+                , E.onClick (TabChanged Stats)
+                ]
+                [ H.text "Stats"
+                ]
+            , case activeTab of
+                Stats ->
+                    H.div
+                        [ A.class "tabgroup--active" ]
+                        []
+
+                _ ->
+                    H.text ""
             ]
-        , H.button
-            [ A.attribute "data-test" "bio-tab"
-            , E.onClick (TabChanged Bio)
+        , H.div
+            [ A.class "tabgroup"
             ]
-            [ H.text "Bio"
+            [ H.button
+                [ A.attribute "data-test" "bio-tab"
+                , tabBtnClass
+                , E.onClick (TabChanged Bio)
+                ]
+                [ H.text "Bio"
+                ]
+            , case activeTab of
+                Bio ->
+                    H.div
+                        [ A.class "tabgroup--active" ]
+                        []
+
+                _ ->
+                    H.text ""
             ]
         ]
 
