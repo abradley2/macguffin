@@ -137,10 +137,11 @@ view mAgentID model =
         ]
 
 
-tabBtnClass =
+tabBtnClass isActive =
     A.classList
         [ ( "button", True )
         , ( "tabgroup__button", True )
+        , ( "tabgroup__button--active", isActive )
         ]
 
 
@@ -154,38 +155,22 @@ tabsView activeTab =
             ]
             [ H.button
                 [ A.attribute "data-test" "stats-tab"
-                , tabBtnClass
+                , tabBtnClass (activeTab == Stats)
                 , E.onClick (TabChanged Stats)
                 ]
                 [ H.text "Stats"
                 ]
-            , case activeTab of
-                Stats ->
-                    H.div
-                        [ A.class "tabgroup--active" ]
-                        []
-
-                _ ->
-                    H.text ""
             ]
         , H.div
             [ A.class "tabgroup"
             ]
             [ H.button
                 [ A.attribute "data-test" "bio-tab"
-                , tabBtnClass
+                , tabBtnClass (activeTab == Bio)
                 , E.onClick (TabChanged Bio)
                 ]
                 [ H.text "Bio"
                 ]
-            , case activeTab of
-                Bio ->
-                    H.div
-                        [ A.class "tabgroup--active" ]
-                        []
-
-                _ ->
-                    H.text ""
             ]
         ]
 
