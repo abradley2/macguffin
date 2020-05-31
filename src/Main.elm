@@ -12,6 +12,7 @@ import Http
 import Json.Decode as D
 import Json.Encode as E
 import Page.Dashboard as DashboardPage
+import Page.Editor as EditorPage
 import Page.Login as LoginPage
 import Url exposing (Url)
 import Url.Builder exposing (crossOrigin)
@@ -73,11 +74,13 @@ type Page
     = NotFound
     | LoginPage LoginPage.Model
     | DashboardPage DashboardPage.Model
+    | EditorPage EditorPage.Model
 
 
 type Route
     = LoginRoute
     | DashboardRoute
+    | EditorRoute
 
 
 urlToRoute : Url -> Maybe Route
@@ -87,6 +90,7 @@ urlToRoute url =
             oneOf
                 [ map LoginRoute top
                 , map DashboardRoute (s "agent-dashboard")
+                , map EditorRoute (s "editor")
                 ]
     in
     parse urlParser url
@@ -105,6 +109,12 @@ modelWithRoute model route =
             DashboardPage.init model.token model.flags
                 |> mapModel (\dashboard -> { model | page = DashboardPage dashboard })
                 |> mapMsg (DashboardMsg >> PageMsg)
+                |> handleExternalMsg model.appKey model.flags
+
+        Just EditorRoute ->
+            EditorPage.init
+                |> mapModel (\editor -> { model | page = EditorPage editor })
+                |> mapMsg (EditorPageMsg >> PageMsg)
                 |> handleExternalMsg model.appKey model.flags
 
         Nothing ->
@@ -144,7 +154,7 @@ handleExternalMsg appKey flags result =
                 Nothing ->
                     ( model, Eff cmd )
 
-        Result.Err _ ->
+        Result.Err never ->
             handleExternalMsg appKey flags result
 
 
@@ -207,6 +217,7 @@ type alias Model =
 type PageMsg
     = LoginMsg LoginPage.Msg
     | DashboardMsg DashboardPage.Msg
+    | EditorPageMsg EditorPage.Msg
 
 
 type Msg
@@ -310,6 +321,17 @@ update msg model =
                 _ ->
                     handleExtraneousPageMsg model
 
+        PageMsg (EditorPageMsg editorMsg) ->
+            case model.page of
+                EditorPage editorPage ->
+                    EditorPage.update editorMsg editorPage
+                        |> mapMsg (EditorPageMsg >> PageMsg)
+                        |> mapModel (\editor -> { model | page = EditorPage editor })
+                        |> handleExternalMsg model.appKey model.flags
+
+                _ ->
+                    handleExtraneousPageMsg model
+
 
 view : Model -> Document Msg
 view model =
@@ -322,19 +344,31 @@ view model =
                 [ H.div []
                     [ appErrorsView model.appErrors
                     ]
-                , case model.page of
-                    LoginPage loginPage ->
-                        LoginPage.view model.flags loginPage
-                            |> H.map (LoginMsg >> PageMsg)
-
-                    DashboardPage dashboardPage ->
-                        DashboardPage.view model.token model.flags dashboardPage
-                            |> H.map (DashboardMsg >> PageMsg)
-
-                    NotFound ->
-                        H.h3 [] [ H.text "Not found" ]
+                , pageBodyView model
                 ]
             ]
+
+
+pageBodyView : Model -> H.Html Msg
+pageBodyView model =
+    H.div
+        []
+        [ case model.page of
+            LoginPage loginPage ->
+                LoginPage.view model.flags loginPage
+                    |> H.map (LoginMsg >> PageMsg)
+
+            DashboardPage dashboardPage ->
+                DashboardPage.view model.token model.flags dashboardPage
+                    |> H.map (DashboardMsg >> PageMsg)
+
+            EditorPage editorPage ->
+                EditorPage.view editorPage
+                    |> H.map (EditorPageMsg >> PageMsg)
+
+            NotFound ->
+                H.h3 [] [ H.text "Not found" ]
+        ]
 
 
 appErrorsView : List Log -> H.Html Msg

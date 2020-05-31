@@ -129,7 +129,10 @@ update_ msg model =
 
 view : Flags -> Model -> H.Html Msg
 view flags model =
-    H.div [ A.class "login-container" ]
+    H.div
+        [ A.class "login-container"
+        , A.attribute "data-test" "login-page"
+        ]
         [ H.div
             []
             []

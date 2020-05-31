@@ -197,7 +197,10 @@ update_ flags msg model =
 
 view : Maybe Token -> Flags -> Model -> H.Html Msg
 view mToken flags model =
-    H.div [ A.class "dashboard-page" ]
+    H.div
+        [ A.class "dashboard-page"
+        , A.attribute "data-test" "dashboard-page"
+        ]
         [ H.div [ A.class "dashboard-modalcontainer" ]
             [ case model.modal of
                 Just (Profile formModel) ->
