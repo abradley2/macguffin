@@ -1,0 +1,16 @@
+.rte-main {
+  text-align: left;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 400px;
+  background-color: white;
+  color: black;
+  padding: 16px;
+}
+
+.rte-hide-caret {
+  caret-color: transparent;
+}

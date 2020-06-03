@@ -1,6 +1,21 @@
+import "./js/rte-elements"
 import { Elm } from './Main.elm'
 
 const pageUrl = `${window.location.protocol}//${window.location.host}`
+
+class XInner extends HTMLElement {
+  attributeChangedCallback (name, oldVal, newVal) {
+    this.innerHTML = newVal
+  }
+}
+
+XInner.observedAttributes = [ "html" ]
+
+try {
+  window.customElements.define("x-inner", XInner)
+} catch (err) {
+  window.console.error(err)
+}
 
 let token = null
 try {
