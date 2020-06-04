@@ -2,7 +2,7 @@ module Page.Editor.Transforms exposing (..)
 
 import RichText.Commands exposing (toggleMark)
 import RichText.Config.Command exposing (Command(..), transform)
-import RichText.Config.MarkDefinition exposing (HtmlToMark, MarkDefinition, MarkToHtml, markDefinition, name)
+import RichText.Config.MarkDefinition exposing (HtmlToMark, MarkDefinition, MarkToHtml, markDefinition, name, defaultHtmlToMark)
 import RichText.Config.Spec exposing (Spec)
 import RichText.Model.Attribute exposing (Attribute(..))
 import RichText.Model.HtmlNode exposing (HtmlNode(..))
@@ -16,6 +16,9 @@ centerAlignFromHtml definition node =
     in
     case node of
         ElementNode name _ children ->
+            let
+                c = Debug.log "CHILDREN" children
+            in
             if name == "x-align" then
                 Just
                     ( mark
@@ -33,7 +36,7 @@ centerAlignFromHtml definition node =
 
 centerAlignToHtml : MarkToHtml
 centerAlignToHtml m children =
-    ElementNode "p" [ ( "style", "display:block; text-align:right;" ) ] children
+    ElementNode "x-align" [ ( "style", "display:block; text-align:right;" ) ] children
 
 
 centerAlign : MarkDefinition
@@ -41,7 +44,7 @@ centerAlign =
     markDefinition
         { fromHtmlNode = centerAlignFromHtml
         , toHtmlNode = centerAlignToHtml
-        , name = "p"
+        , name = "center-align"
         }
 
 
