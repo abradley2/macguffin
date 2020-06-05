@@ -6,7 +6,7 @@ import ExtMsg exposing (ExtMsg(..))
 import Html as H
 import Html.Attributes as A
 import Html.Events as E
-import Page.Editor.Transforms exposing (centerAlign, centerAlignCmd)
+import Page.Editor.Transforms exposing (textAlign, centerAlignCmd)
 import PageResult exposing (resolveEffects, withEffect)
 import Result.Extra as ResultX
 import RichText.Commands exposing (defaultCommandMap)
@@ -164,7 +164,7 @@ editorSpec : Spec
 editorSpec =
     RTE.markdown
         |> withMarkDefinitions
-            [ centerAlign
+            [ textAlign
             ]
 
 
@@ -197,6 +197,15 @@ debugView model =
 
 editorView : Model -> H.Html Msg
 editorView model =
-    Editor.view
-        editorConfig
-        model.editor
+    H.div
+        [ A.class "window rte-wrapper" ]
+        [ H.div
+            [ A.class "window__header" ]
+            []
+        , H.div
+            [ A.class "window__body" ]
+            [ Editor.view
+                editorConfig
+                model.editor
+            ]
+        ]
