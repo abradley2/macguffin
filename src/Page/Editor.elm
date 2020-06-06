@@ -208,7 +208,43 @@ editorView model =
                 [ A.class "rte-" ]
                 [ H.div
                     [ A.class "rte-header" ]
-                    []
+                    [ H.div
+                        [ A.class "rte-format-buttons" ]
+                        [ H.button
+                            []
+                            [ H.i [ A.class "icon-align-left" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-align-center" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-align-right" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-italic" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-bold" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-link" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-list" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-list-ol" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-underline" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-strikethrough" ] [] ]
+                        , H.button
+                            []
+                            [ H.i [ A.class "icon-picture" ] [] ]
+                        ]
+                    ]
                 , Editor.view
                     editorConfig
                     model.editor
