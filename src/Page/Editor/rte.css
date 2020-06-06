@@ -4,7 +4,8 @@
 }
 
 .rte-header {
-  height: 60px;
+  height: 40px;
+  padding: 8px;
   border: 3px ridge var(--windows-grey);
   box-shadow: inset 2px 2px grey, inset 2px 2px #565656, inset 3px 3px #565656, inset -2px -2px #565656;
 }

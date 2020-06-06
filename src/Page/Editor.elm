@@ -188,6 +188,7 @@ debugView model =
                 |> toHtml editorSpec
                 |> blockFromHtml editorSpec
                 |> Result.map (toHtml editorSpec)
+                |> Result.map (\h -> "<div class=\"rte-main\">" ++ h ++ "</div>")
                 |> Result.mapError (\err -> "Could not parse html: " ++ err)
                 |> ResultX.merge
             )
