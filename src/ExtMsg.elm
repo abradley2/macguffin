@@ -1,8 +1,9 @@
 module ExtMsg exposing (ExtMsg(..), Log, Token(..), hasRedirect)
 
 
-type Token =
-    Token String
+type Token
+    = Token String
+
 
 type alias Log =
     { userMessage : Maybe String
@@ -21,14 +22,20 @@ type ExtMsg
 hasRedirect : ExtMsg -> Bool
 hasRedirect extMsg =
     case extMsg of
-        PushUrl _ -> True
+        PushUrl _ ->
+            True
+
         Batch msgList ->
             List.foldl
                 (\cur acc ->
-                    if acc then acc
-                    else hasRedirect cur
+                    if acc then
+                        acc
+
+                    else
+                        hasRedirect cur
                 )
                 False
                 msgList
+
         _ ->
             False

@@ -1,10 +1,11 @@
 module Page.Dashboard.MacguffinItem exposing (..)
 
+import ExtMsg exposing (Token(..))
+import Flags exposing (Flags)
 import Http exposing (Error)
 import Json.Decode as D
-import Flags exposing (Flags)
-import ExtMsg exposing (Token(..))
 import Url.Builder exposing (crossOrigin, string)
+
 
 type alias MacguffinItem =
     { name : String
@@ -14,7 +15,6 @@ type alias MacguffinItem =
     , createdAt : String
     , approved : Bool
     }
-
 
 
 decodeMacguffinItem : D.Decoder MacguffinItem

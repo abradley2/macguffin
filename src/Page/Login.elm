@@ -80,7 +80,6 @@ queryParser =
     Q.map (\v -> v) (Q.string "code")
 
 
-
 init flags url =
     init_ flags url
         |> resolveEffects performEffect

@@ -18,7 +18,6 @@ view attrs text =
             []
         , H.div
             [ A.class "folder__bottom" ]
-            [
-                H.span [] [ H.text text ]
+            [ H.span [] [ H.text text ]
             ]
         ]

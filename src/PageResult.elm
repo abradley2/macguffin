@@ -4,11 +4,11 @@ import ComponentResult
     exposing
         ( ComponentResult
         , escape
+        , justError
         , mapModel
         , withCmds
         , withExternalMsg
         , withModel
-        , justError
         )
 
 

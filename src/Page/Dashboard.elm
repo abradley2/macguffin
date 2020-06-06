@@ -58,7 +58,8 @@ to populate it's default values
 initProfileForm : WebData UserProfile -> ProfileForm.Model
 initProfileForm mUserProfile =
     let
-        default = ProfileForm.init
+        default =
+            ProfileForm.init
     in
     case mUserProfile of
         Success profile ->

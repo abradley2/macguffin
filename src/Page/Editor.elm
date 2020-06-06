@@ -6,7 +6,7 @@ import ExtMsg exposing (ExtMsg(..))
 import Html as H
 import Html.Attributes as A
 import Html.Events as E
-import Page.Editor.Transforms exposing (textAlign, centerAlignCmd)
+import Page.Editor.Transforms exposing (centerAlignCmd, textAlign)
 import PageResult exposing (resolveEffects, withEffect)
 import Result.Extra as ResultX
 import RichText.Commands exposing (defaultCommandMap)
