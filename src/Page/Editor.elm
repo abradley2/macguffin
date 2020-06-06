@@ -200,12 +200,18 @@ editorView model =
     H.div
         [ A.class "window rte-wrapper" ]
         [ H.div
-            [ A.class "window__header" ]
+            [ A.class "window__header rte-window-header" ]
             []
         , H.div
-            [ A.class "window__body" ]
-            [ Editor.view
-                editorConfig
-                model.editor
+            [ A.class "window__body rte-window-body" ]
+            [ H.div
+                [ A.class "rte-" ]
+                [ H.div
+                    [ A.class "rte-header" ]
+                    []
+                , Editor.view
+                    editorConfig
+                    model.editor
+                ]
             ]
         ]

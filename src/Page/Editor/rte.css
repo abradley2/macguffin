@@ -1,6 +1,20 @@
 .rte-wrapper {
-  width: calc(450px + 50px * 2);
+  width: calc(400px + 100px * 2);
   margin: auto;
+}
+
+.rte-header {
+  height: 60px;
+  border: 3px ridge var(--windows-grey);
+  box-shadow: inset 2px 2px grey, inset 2px 2px #565656, inset 3px 3px #565656, inset -2px -2px #565656;
+}
+
+.rte-window-body {
+  padding: 0px;
+}
+
+.rte-window-header {
+  margin-bottom: 0px;
 }
 
 .rte-main {
@@ -10,13 +24,15 @@
   -webkit-user-select: text;
   white-space: pre-wrap;
   word-wrap: break-word;
-  width: 450px;
-  height: 650px;
+  width: 400px;
+  height: 550px;
   background-color: white;
   color: black;
   padding: 16px;
   font-size: 12px;
   margin: auto;
+  border: 3px ridge var(--windows-grey);
+  box-shadow: inset 2px 2px 4px 1px grey, inset 2px 2px 2px 0px #565656, inset 3px 3px 0px #565656, inset -2px -2px 4px 0px #565656;
 }
 
 .rte-hide-caret {
