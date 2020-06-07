@@ -186,8 +186,10 @@ debugView model =
                 |> Editor.state
                 |> EditorState.root
                 |> toHtml editorSpec
+                |> String.replace "<p></p>" "<p>&#8203;</p>"
                 |> blockFromHtml editorSpec
                 |> Result.map (toHtml editorSpec)
+                |> Result.map (String.replace "<p></p>" "<p>&#8203;</p>")
                 |> Result.map (\h -> "<div class=\"rte-main\">" ++ h ++ "</div>")
                 |> Result.mapError (\err -> "Could not parse html: " ++ err)
                 |> ResultX.merge
@@ -212,37 +214,37 @@ editorView model =
                     [ H.div
                         [ A.class "rte-format-buttons" ]
                         [ H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-align-left" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-align-center" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-align-right" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-italic" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-bold" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-link" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-list" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-list-ol" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-underline" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-strikethrough" ] [] ]
                         , H.button
-                            []
+                            [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-picture" ] [] ]
                         ]
                     ]

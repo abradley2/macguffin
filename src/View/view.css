@@ -72,3 +72,14 @@
   margin-top: -4px;
   box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf;
 }
+
+.icon-button {
+  border: none;
+  height: 26px;
+  box-shadow: inset -1px -1px #0a0a0a, inset 1px 1px #fff, inset -2px -2px grey, inset 2px 2px #dfdfdf;
+  min-width: initial;
+  width: 26px;
+  padding: 0px;
+  color: black;
+  margin-right: 6px;
+}
