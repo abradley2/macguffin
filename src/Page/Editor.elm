@@ -248,9 +248,38 @@ editorView model =
                             [ H.i [ A.class "icon-picture" ] [] ]
                         ]
                     ]
-                , Editor.view
-                    editorConfig
-                    model.editor
+                , H.div
+                    [ A.class "rte-editor__body"]
+                    [ H.div
+                        [ A.class "rte-editor__body__sidebar"]
+                        sidebarMarkers
+                    , Editor.view
+                        editorConfig
+                        model.editor
+                    ]
                 ]
             ]
+        ]
+
+
+sidebarMarkers : List (H.Html Msg)
+sidebarMarkers =
+    List.map
+    sidebarMarker
+    [ "1"
+    , "2"
+    , "3"
+    , "4"
+    , "5"
+    , "6"
+    , "7"
+    , "8"
+    , "9"
+    ]
+
+sidebarMarker : String -> H.Html Msg
+sidebarMarker markerNum =
+    H.div
+        [ A.class "sidebar-marker" ]
+        [ H.text markerNum
         ]

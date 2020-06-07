@@ -1,5 +1,5 @@
 .rte-wrapper {
-  width: calc(400px + 40px * 2);
+  width: calc(400px + 30px * 2);
   margin: auto;
 }
 
@@ -31,11 +31,42 @@
   color: black;
   padding: 16px;
   font-size: 12px;
-  margin: 20px auto;
+  margin: auto;
   border: 3px ridge var(--windows-grey);
   box-shadow: inset 2px 2px 4px 1px grey, inset 2px 2px 2px 0px #565656, inset 3px 3px 0px #565656, inset -2px -2px 4px 0px #565656;
 }
 
 .rte-hide-caret {
   caret-color: transparent;
+}
+
+.rte-editor__body {
+  position: relative;
+  margin-right: -20px;
+}
+
+.rte-editor__body__sidebar {
+  position: absolute;
+  width: 570px;
+  top: 10px;
+  left: 20px;
+  height: 20px;
+  transform-origin: 0 0;
+  transform: rotateZ(90deg);
+  background-color: white;
+  overflow: hidden;
+  display: flex;
+  color: var(--windows-grey-border);
+  justify-content: space-around;
+  align-items: center;
+  line-height: 20px;
+  box-shadow: inset 2px 2px grey, inset 2px 2px #565656, inset 3px 3px #565656, inset -2px -2px #565656;
+  font-size: 10px;
+}
+
+
+.sidebar-marker {
+  display: inline-block;
+  line-height: 24px;
+  height: 20px;
 }
