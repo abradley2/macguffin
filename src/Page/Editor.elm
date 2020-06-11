@@ -9,16 +9,21 @@ import Html.Events as E
 import Page.Editor.Transforms exposing (centerAlignCmd, textAlign)
 import PageResult exposing (resolveEffects, withEffect)
 import Result.Extra as ResultX
-import RichText.Commands exposing (defaultCommandMap)
+import RichText.Commands exposing (defaultCommandMap, insertBlock)
+import RichText.Config.Command exposing (transform)
 import RichText.Config.Decorations exposing (emptyDecorations)
 import RichText.Config.Spec exposing (Spec, withMarkDefinitions)
-import RichText.Definitions as RTE exposing (markdown, paragraph)
+import RichText.Config.ElementDefinition exposing (textBlock)
+import RichText.Definitions as RTE exposing (markdown, paragraph, orderedList, listItem)
 import RichText.Editor as Editor exposing (Editor, apply)
 import RichText.Html exposing (blockFromHtml, toHtml)
 import RichText.Model.Element exposing (element)
 import RichText.Model.HtmlNode exposing (HtmlNode(..))
 import RichText.Model.Node as EditorNode
 import RichText.Model.State as EditorState
+import RichText.Model.Node exposing (block, plainText, inlineChildren, blockChildren)
+import RichText.List exposing (defaultListDefinition, ListType(..))
+
 
 
 type Effect
@@ -42,6 +47,7 @@ type Msg
     = NoOp
     | EditorInternalMsg Editor.Message
     | ChangeAlignment Alignment
+    | InsertOrderedList
 
 
 type alias Model =
@@ -89,6 +95,45 @@ update_ msg model =
     case msg of
         NoOp ->
             withModel model
+                |> withEffect (Eff Cmd.none)
+
+        InsertOrderedList ->
+            let
+                res = model.editor
+                    |> Editor.state
+                    |> insertBlock (
+                        block
+                            (element orderedList [])
+                            (blockChildren <|
+                                Array.fromList
+                                    [ block
+                                        (element listItem [])
+                                        (inlineChildren <| Array.fromList
+                                            [ plainText "Hello there"
+                                            ]
+                                        )
+                                    ]
+                        )
+                    )
+                    |> Result.map Editor.init
+
+                otherRes =
+                    apply
+                        ( "wrapList"
+                        , transform <|
+                            RichText.List.wrap defaultListDefinition Ordered
+                        )
+                        editorSpec
+                        model.editor
+
+            in
+            withModel
+                { model
+                | editor =
+                    otherRes
+                        |> Result.mapError (Debug.log "ERROR DOING COMMAND")
+                        |> Result.withDefault model.editor
+                }
                 |> withEffect (Eff Cmd.none)
 
         ChangeAlignment align ->
@@ -151,6 +196,9 @@ view model =
                 ]
                 [ H.text "center"
                 ]
+            , H.button
+                [ E.onClick InsertOrderedList ]
+                [ H.text "insert ordered list" ]
             ]
         , H.div
             []
@@ -204,7 +252,11 @@ editorView model =
         [ A.class "window rte-wrapper" ]
         [ H.div
             [ A.class "window__header rte-window-header" ]
-            []
+            [ H.div
+                [ A.class "window__header__title" ]
+                [ H.text "MacTaf Soft Word-processor"]
+
+            ]
         , H.div
             [ A.class "window__body rte-window-body" ]
             [ H.div
@@ -249,7 +301,9 @@ editorView model =
                         ]
                     ]
                 , H.div
-                    [ A.class "rte-editor__body"]
+                    [ A.class "rte-editor__body"
+                    , A.attribute "spellcheck" "false"
+                    ]
                     [ H.div
                         [ A.class "rte-editor__body__sidebar"]
                         sidebarMarkers
