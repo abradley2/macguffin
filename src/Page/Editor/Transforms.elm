@@ -106,6 +106,16 @@ centerAlignCmd =
     alignCmd CenterAlign
 
 
+rightAlignCmd : Spec -> ( String, Command )
+rightAlignCmd =
+    alignCmd RightAlign
+
+
+leftAlignCmd : Spec -> ( String, Command )
+leftAlignCmd =
+    alignCmd LeftAlign
+
+
 alignCmd : Alignment -> Spec -> ( String, Command )
 alignCmd alignment editorSpec =
     ( name textAlign

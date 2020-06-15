@@ -100,3 +100,11 @@ body {
   height: 26px;
   padding-left: 8px;
 }
+
+bold {
+  font-weight: bolder;
+}
+
+italic {
+  font-style: italic;
+}

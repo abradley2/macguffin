@@ -6,23 +6,24 @@ import ExtMsg exposing (ExtMsg(..))
 import Html as H
 import Html.Attributes as A
 import Html.Events as E
-import Page.Editor.Transforms exposing (centerAlignCmd, textAlign)
+import Page.Editor.Transforms exposing (centerAlignCmd, leftAlignCmd, rightAlignCmd, textAlign)
 import PageResult exposing (resolveEffects, withEffect)
 import Result.Extra as ResultX
 import RichText.Commands exposing (defaultCommandMap, insertBlock)
 import RichText.Config.Command exposing (transform)
 import RichText.Config.Decorations exposing (emptyDecorations)
-import RichText.Config.Spec exposing (Spec, withMarkDefinitions)
 import RichText.Config.ElementDefinition exposing (textBlock)
-import RichText.Definitions as RTE exposing (markdown, paragraph, orderedList, listItem)
+import RichText.Config.Spec exposing (Spec, withMarkDefinitions)
+import RichText.Definitions as RTE exposing (listItem, markdown, orderedList, paragraph)
 import RichText.Editor as Editor exposing (Editor, apply)
-import RichText.Html exposing (blockFromHtml, toHtml)
+import RichText.Html exposing (blockFromHtml, toHtml, toHtmlNode)
+import RichText.List exposing (ListType(..), defaultListDefinition)
 import RichText.Model.Element exposing (element)
 import RichText.Model.HtmlNode exposing (HtmlNode(..))
-import RichText.Model.Node as EditorNode
+import RichText.Model.Node as EditorNode exposing (block, blockChildren, inlineChildren, plainText)
 import RichText.Model.State as EditorState
-import RichText.Model.Node exposing (block, plainText, inlineChildren, blockChildren)
-import RichText.List exposing (defaultListDefinition, ListType(..))
+import Page.Editor.Keybind exposing (commandBindings)
+import RichText.Definitions exposing (bold, italic)
 
 
 
@@ -99,23 +100,25 @@ update_ msg model =
 
         InsertOrderedList ->
             let
-                res = model.editor
-                    |> Editor.state
-                    |> insertBlock (
-                        block
-                            (element orderedList [])
-                            (blockChildren <|
-                                Array.fromList
-                                    [ block
-                                        (element listItem [])
-                                        (inlineChildren <| Array.fromList
-                                            [ plainText "Hello there"
-                                            ]
-                                        )
-                                    ]
-                        )
-                    )
-                    |> Result.map Editor.init
+                res =
+                    model.editor
+                        |> Editor.state
+                        |> insertBlock
+                            (block
+                                (element orderedList [])
+                                (blockChildren <|
+                                    Array.fromList
+                                        [ block
+                                            (element listItem [])
+                                            (inlineChildren <|
+                                                Array.fromList
+                                                    [ plainText "Hello there"
+                                                    ]
+                                            )
+                                        ]
+                                )
+                            )
+                        |> Result.map Editor.init
 
                 otherRes =
                     apply
@@ -125,14 +128,13 @@ update_ msg model =
                         )
                         editorSpec
                         model.editor
-
             in
             withModel
                 { model
-                | editor =
-                    otherRes
-                        |> Result.mapError (Debug.log "ERROR DOING COMMAND")
-                        |> Result.withDefault model.editor
+                    | editor =
+                        otherRes
+                            |> Result.mapError (Debug.log "ERROR DOING COMMAND")
+                            |> Result.withDefault model.editor
                 }
                 |> withEffect (Eff Cmd.none)
 
@@ -144,8 +146,16 @@ update_ msg model =
                         |> EditorState.selection
             in
             case ( mSelection, align ) of
-                ( Just selection, LeftAlign ) ->
-                    withModel model
+                ( _, LeftAlign ) ->
+                    let
+                        editor =
+                            apply
+                                (leftAlignCmd editorSpec)
+                                editorSpec
+                                model.editor
+                                |> Result.withDefault model.editor
+                    in
+                    withModel { model | editor = editor }
                         |> withEffect (Eff Cmd.none)
 
                 ( _, CenterAlign ) ->
@@ -161,11 +171,15 @@ update_ msg model =
                         |> withEffect (Eff Cmd.none)
 
                 ( _, RightAlign ) ->
-                    withModel model
-                        |> withEffect (Eff Cmd.none)
-
-                ( Nothing, _ ) ->
-                    withModel model
+                    let
+                        editor =
+                            apply
+                                (rightAlignCmd editorSpec)
+                                editorSpec
+                                model.editor
+                                |> Result.withDefault model.editor
+                    in
+                    withModel { model | editor = editor }
                         |> withEffect (Eff Cmd.none)
 
         EditorInternalMsg editorMsg ->
@@ -213,6 +227,8 @@ editorSpec =
     RTE.markdown
         |> withMarkDefinitions
             [ textAlign
+            , bold
+            , italic
             ]
 
 
@@ -220,13 +236,20 @@ editorConfig =
     Editor.config
         { decorations = emptyDecorations
         , spec = editorSpec
-        , commandMap = defaultCommandMap
+        , commandMap = commandBindings editorSpec
         , toMsg = EditorInternalMsg
         }
 
 
 debugView : Model -> H.Html Msg
 debugView model =
+    let
+        d = model.editor
+            |> Editor.state
+            |> EditorState.root
+            |> toHtmlNode editorSpec
+            |> Debug.log ("AS NODE")
+    in
     H.node
         "x-inner"
         [ A.attribute "html"
@@ -234,10 +257,9 @@ debugView model =
                 |> Editor.state
                 |> EditorState.root
                 |> toHtml editorSpec
-                |> String.replace "<p></p>" "<p>&#8203;</p>"
+                |> Debug.log "toHtml"
                 |> blockFromHtml editorSpec
                 |> Result.map (toHtml editorSpec)
-                |> Result.map (String.replace "<p></p>" "<p>&#8203;</p>")
                 |> Result.map (\h -> "<div class=\"rte-main\">" ++ h ++ "</div>")
                 |> Result.mapError (\err -> "Could not parse html: " ++ err)
                 |> ResultX.merge
@@ -254,8 +276,7 @@ editorView model =
             [ A.class "window__header rte-window-header" ]
             [ H.div
                 [ A.class "window__header__title" ]
-                [ H.text "MacTaf Soft Word-processor"]
-
+                [ H.text "MacTaf Soft Word-processor" ]
             ]
         , H.div
             [ A.class "window__body rte-window-body" ]
@@ -266,13 +287,19 @@ editorView model =
                     [ H.div
                         [ A.class "rte-format-buttons" ]
                         [ H.button
-                            [ A.class "button icon-button" ]
+                            [ A.class "button icon-button"
+                            , E.onClick <| ChangeAlignment LeftAlign
+                            ]
                             [ H.i [ A.class "icon-align-left" ] [] ]
                         , H.button
-                            [ A.class "button icon-button" ]
+                            [ A.class "button icon-button"
+                            , E.onClick <| ChangeAlignment CenterAlign
+                            ]
                             [ H.i [ A.class "icon-align-center" ] [] ]
                         , H.button
-                            [ A.class "button icon-button" ]
+                            [ A.class "button icon-button"
+                            , E.onClick <| ChangeAlignment RightAlign
+                            ]
                             [ H.i [ A.class "icon-align-right" ] [] ]
                         , H.button
                             [ A.class "button icon-button" ]
@@ -305,7 +332,7 @@ editorView model =
                     , A.attribute "spellcheck" "false"
                     ]
                     [ H.div
-                        [ A.class "rte-editor__body__sidebar"]
+                        [ A.class "rte-editor__body__sidebar" ]
                         sidebarMarkers
                     , Editor.view
                         editorConfig
@@ -319,17 +346,18 @@ editorView model =
 sidebarMarkers : List (H.Html Msg)
 sidebarMarkers =
     List.map
-    sidebarMarker
-    [ "1"
-    , "2"
-    , "3"
-    , "4"
-    , "5"
-    , "6"
-    , "7"
-    , "8"
-    , "9"
-    ]
+        sidebarMarker
+        [ "1"
+        , "2"
+        , "3"
+        , "4"
+        , "5"
+        , "6"
+        , "7"
+        , "8"
+        , "9"
+        ]
+
 
 sidebarMarker : String -> H.Html Msg
 sidebarMarker markerNum =
