@@ -6,6 +6,7 @@ import ExtMsg exposing (ExtMsg(..))
 import Html as H
 import Html.Attributes as A
 import Html.Events as E
+import Page.Editor.Keybind exposing (commandBindings)
 import Page.Editor.Transforms exposing (centerAlignCmd, leftAlignCmd, rightAlignCmd, textAlign)
 import PageResult exposing (resolveEffects, withEffect)
 import Result.Extra as ResultX
@@ -14,7 +15,7 @@ import RichText.Config.Command exposing (transform)
 import RichText.Config.Decorations exposing (emptyDecorations)
 import RichText.Config.ElementDefinition exposing (textBlock)
 import RichText.Config.Spec exposing (Spec, withMarkDefinitions)
-import RichText.Definitions as RTE exposing (listItem, markdown, orderedList, paragraph)
+import RichText.Definitions as RTE exposing (bold, italic, listItem, markdown, orderedList, paragraph)
 import RichText.Editor as Editor exposing (Editor, apply)
 import RichText.Html exposing (blockFromHtml, toHtml, toHtmlNode)
 import RichText.List exposing (ListType(..), defaultListDefinition)
@@ -22,9 +23,6 @@ import RichText.Model.Element exposing (element)
 import RichText.Model.HtmlNode exposing (HtmlNode(..))
 import RichText.Model.Node as EditorNode exposing (block, blockChildren, inlineChildren, plainText)
 import RichText.Model.State as EditorState
-import Page.Editor.Keybind exposing (commandBindings)
-import RichText.Definitions exposing (bold, italic)
-
 
 
 type Effect
@@ -244,11 +242,12 @@ editorConfig =
 debugView : Model -> H.Html Msg
 debugView model =
     let
-        d = model.editor
-            |> Editor.state
-            |> EditorState.root
-            |> toHtmlNode editorSpec
-            |> Debug.log ("AS NODE")
+        d =
+            model.editor
+                |> Editor.state
+                |> EditorState.root
+                |> toHtmlNode editorSpec
+                |> Debug.log "AS NODE"
     in
     H.node
         "x-inner"
@@ -332,6 +331,13 @@ editorView model =
                     , A.attribute "spellcheck" "false"
                     ]
                     [ H.div
+                        [ A.classList
+                            [ ( "rte-editor__body__sidebar", True )
+                            , ( "rte-editor__body__sidebar--left", True )
+                            ]
+                        ]
+                        sidebarMarkers
+                    , H.div
                         [ A.class "rte-editor__body__sidebar" ]
                         sidebarMarkers
                     , Editor.view
