@@ -23,7 +23,7 @@ getModel =
 suite : Test
 suite =
     describe
-        "stuff"
+        "rich text editor page"
         [ test "Can add an ordered list to the editor" <|
             \_ ->
                 EditorPage.init
