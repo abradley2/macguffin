@@ -108,3 +108,7 @@ bold {
 italic {
   font-style: italic;
 }
+
+p {
+  margin: 0px;
+}

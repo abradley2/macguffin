@@ -1,4 +1,4 @@
-module Page.Editor exposing (Model, Msg(..), PageResult, init, update, view)
+module Page.Editor exposing (Model, Msg(..), PageResult, init, update, view, editorSpec)
 
 import Array
 import ComponentResult exposing (ComponentResult, withModel)
@@ -10,14 +10,12 @@ import Page.Editor.Keybind exposing (commandBindings)
 import Page.Editor.Transforms exposing (centerAlignCmd, leftAlignCmd, rightAlignCmd, textAlign)
 import PageResult exposing (resolveEffects, withEffect)
 import Result.Extra as ResultX
-import RichText.Commands exposing (defaultCommandMap, insertBlock)
 import RichText.Config.Command exposing (transform)
 import RichText.Config.Decorations exposing (emptyDecorations)
-import RichText.Config.ElementDefinition exposing (textBlock)
 import RichText.Config.Spec exposing (Spec, withMarkDefinitions)
-import RichText.Definitions as RTE exposing (bold, italic, listItem, markdown, orderedList, paragraph)
+import RichText.Definitions as RTE exposing (bold, italic, markdown, paragraph)
 import RichText.Editor as Editor exposing (Editor, apply)
-import RichText.Html exposing (blockFromHtml, toHtml, toHtmlNode)
+import RichText.Html exposing (blockFromHtml, toHtml)
 import RichText.List exposing (ListType(..), defaultListDefinition)
 import RichText.Model.Element exposing (element)
 import RichText.Model.HtmlNode exposing (HtmlNode(..))
@@ -97,41 +95,16 @@ update_ msg model =
                 |> withEffect (Eff Cmd.none)
 
         InsertOrderedList ->
-            let
-                res =
-                    model.editor
-                        |> Editor.state
-                        |> insertBlock
-                            (block
-                                (element orderedList [])
-                                (blockChildren <|
-                                    Array.fromList
-                                        [ block
-                                            (element listItem [])
-                                            (inlineChildren <|
-                                                Array.fromList
-                                                    [ plainText "Hello there"
-                                                    ]
-                                            )
-                                        ]
-                                )
-                            )
-                        |> Result.map Editor.init
-
-                otherRes =
-                    apply
-                        ( "wrapList"
-                        , transform <|
-                            RichText.List.wrap defaultListDefinition Ordered
-                        )
-                        editorSpec
-                        model.editor
-            in
             withModel
                 { model
                     | editor =
-                        otherRes
-                            |> Result.mapError (Debug.log "ERROR DOING COMMAND")
+                        apply
+                            ( "wrapList"
+                            , transform <|
+                                RichText.List.wrap defaultListDefinition Ordered
+                            )
+                            editorSpec
+                            model.editor
                             |> Result.withDefault model.editor
                 }
                 |> withEffect (Eff Cmd.none)
@@ -200,19 +173,7 @@ view model =
     H.div
         [ A.attribute "data-test" "editor-page"
         ]
-        [ H.text "Editor page"
-        , H.div
-            []
-            [ H.button
-                [ E.onClick (ChangeAlignment CenterAlign)
-                ]
-                [ H.text "center"
-                ]
-            , H.button
-                [ E.onClick InsertOrderedList ]
-                [ H.text "insert ordered list" ]
-            ]
-        , H.div
+        [ H.div
             []
             [ editorView model
             , debugView model
@@ -241,14 +202,6 @@ editorConfig =
 
 debugView : Model -> H.Html Msg
 debugView model =
-    let
-        d =
-            model.editor
-                |> Editor.state
-                |> EditorState.root
-                |> toHtmlNode editorSpec
-                |> Debug.log "AS NODE"
-    in
     H.node
         "x-inner"
         [ A.attribute "html"
@@ -256,7 +209,6 @@ debugView model =
                 |> Editor.state
                 |> EditorState.root
                 |> toHtml editorSpec
-                |> Debug.log "toHtml"
                 |> blockFromHtml editorSpec
                 |> Result.map (toHtml editorSpec)
                 |> Result.map (\h -> "<div class=\"rte-main\">" ++ h ++ "</div>")
@@ -313,7 +265,9 @@ editorView model =
                             [ A.class "button icon-button" ]
                             [ H.i [ A.class "icon-list" ] [] ]
                         , H.button
-                            [ A.class "button icon-button" ]
+                            [ A.class "button icon-button"
+                            , E.onClick InsertOrderedList
+                            ]
                             [ H.i [ A.class "icon-list-ol" ] [] ]
                         , H.button
                             [ A.class "button icon-button" ]

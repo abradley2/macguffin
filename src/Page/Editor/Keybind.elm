@@ -3,30 +3,17 @@ module Page.Editor.Keybind exposing (..)
 import Array
 import RichText.Commands as Commands
     exposing
-        ( insertAfterBlockLeaf
-        , insertBlock
-        , insertNewline
-        , insertText
-        , insertInline
-        , lift
-        , liftEmpty
-        , splitBlockHeaderToNewParagraph
-        , splitTextBlock
-        , toggleMark
-        , toggleTextBlock
-        , wrap
+        ( toggleMark
         )
-import RichText.Config.Command as Command exposing (CommandMap, Transform, inputEvent, internal, key, set, transform)
-import RichText.Config.Keys exposing (enter, return, short)
+import RichText.Config.Command as Command exposing (CommandMap, inputEvent, key, set, transform)
+import RichText.Config.Keys exposing (short)
 import RichText.Config.Spec exposing (Spec)
 import RichText.Definitions exposing (bold, italic, paragraph)
 import RichText.List
-import RichText.Model.Element exposing (Element, element, name)
-import RichText.Model.Mark as Mark exposing (ToggleAction(..), mark, markOrderFromSpec)
-import RichText.Model.Node exposing (Block, block, inlineChildren, plainText, withElement)
-import RichText.Model.Selection exposing (anchorNode, anchorOffset, isCollapsed)
-import RichText.Model.State exposing (State, root, selection, state, withRoot)
-import RichText.Node exposing (Node(..), findClosestBlockPath, isEmptyTextBlock, nodeAt, replace)
+import RichText.Model.Element exposing (element)
+import RichText.Model.Mark exposing (ToggleAction(..), mark, markOrderFromSpec)
+import RichText.Model.Node exposing (Block, block, inlineChildren, plainText)
+import RichText.Node exposing (Node(..))
 
 
 listCommandBindings =
@@ -42,19 +29,6 @@ commandBindings spec =
     Command.combine
         listCommandBindings
         (Commands.defaultCommandMap
-            |> set [ inputEvent "insertParagraph", key [ enter ], key [ return ] ]
-                [ ( "splitBlockHeaderToNewParagraph"
-                  , transform <|
-                        (splitBlockHeaderToNewParagraph
-                            [ "heading" ]
-                            (element paragraph [])
-                            >> Result.andThen
-                                (insertInline
-                                    (plainText zeroWidthSpace)
-                                )
-                        )
-                  )
-                ]
             |> set [ inputEvent "formatBold", key [ short, "b" ] ]
                 [ ( "toggleStyle", transform <| toggleMark markOrder (mark bold []) Flip )
                 ]
