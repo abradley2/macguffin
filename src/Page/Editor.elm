@@ -1,4 +1,4 @@
-module Page.Editor exposing (Model, Msg(..), PageResult, init, update, view, editorSpec)
+module Page.Editor exposing (Model, Msg(..), PageResult, editorSpec, init, update, view)
 
 import Array
 import ComponentResult exposing (ComponentResult, withModel)
@@ -20,7 +20,8 @@ import RichText.List exposing (ListType(..), defaultListDefinition)
 import RichText.Model.Element exposing (element)
 import RichText.Model.HtmlNode exposing (HtmlNode(..))
 import RichText.Model.Node as EditorNode exposing (block, blockChildren, inlineChildren, plainText)
-import RichText.Model.State as EditorState
+import RichText.Model.Selection exposing (range)
+import RichText.Model.State as EditorState exposing (withSelection)
 
 
 type Effect
@@ -78,7 +79,10 @@ initialEditorNode =
 init_ : ComponentResult ( Model, Effect ) Msg ExtMsg Never
 init_ =
     withModel
-        { editor = Editor.init <| EditorState.state initEditorNode Nothing
+        { editor =
+            EditorState.state initEditorNode Nothing
+                |> withSelection (Just <| range [ 0, 0 ] 0 [ 0, 0 ] 4)
+                |> Editor.init
         }
         |> withEffect (Eff Cmd.none)
 
@@ -105,6 +109,7 @@ update_ msg model =
                             )
                             editorSpec
                             model.editor
+                            |> Result.mapError (Debug.log "ERROR")
                             |> Result.withDefault model.editor
                 }
                 |> withEffect (Eff Cmd.none)

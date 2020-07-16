@@ -1,13 +1,17 @@
 module EditorTest exposing (suite)
 
 import ComponentResult exposing (applyExternalMsg, resolve)
+import Expect
+import Html.Attributes as A
 import Page.Editor as EditorPage exposing (editorSpec)
+import RichText.Commands exposing (selectAll)
 import RichText.Editor as Editor
 import RichText.Html exposing (toHtml)
-import RichText.Model.State as EditorState
-import RichText.Commands exposing (selectAll)
+import RichText.Model.Selection exposing (caret, range)
+import RichText.Model.State as EditorState exposing (withRoot, withSelection)
 import Test exposing (..)
-import Expect
+import Test.Html.Query as Query
+import Test.Html.Selector as Selector
 
 
 getModel =
@@ -28,10 +32,19 @@ suite =
                     |> getModel
                     |> .editor
                     |> Editor.state
-                    |> selectAll
-                    |> Result.map EditorState.root
-                    |> Result.map (toHtml editorSpec)
-                    |> Result.map (String.contains "<ol>")
-                    |> Result.map (Expect.equal True)
-                    |> Result.withDefault (Expect.fail "Editor setup failed")
+                    |> withSelection (Just <| range [ 0, 0 ] 0 [ 0, 0 ] 4)
+                    |> EditorState.root
+                    |> toHtml editorSpec
+                    |> String.contains "<ol>"
+                    |> Expect.equal True
+        , test "Can render the view in a basic way" <|
+            \_ ->
+                EditorPage.init
+                    |> getModel
+                    |> EditorPage.view
+                    |> Query.fromHtml
+                    |> Query.findAll
+                        [ Selector.attribute <| A.attribute "data-rte-doc" "true"
+                        ]
+                    |> Query.count (Expect.equal 1)
         ]
